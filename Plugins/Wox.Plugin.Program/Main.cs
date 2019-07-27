@@ -57,10 +57,24 @@ namespace Wox.Plugin.Program
         {
             lock (IndexLock)
             {
-                var results1 = _win32s.AsParallel().Select(p => p.Result(query.Search, _context.API));
-                var results2 = _uwps.AsParallel().Select(p => p.Result(query.Search, _context.API));
-                var result = results1.Concat(results2).Where(r => r.Score > 0).ToList();
-                return result;
+                var sw = new System.Diagnostics.Stopwatch();
+                sw.Start();
+//            UWP.Application[] u = { };
+//            var t1 = Task.Run(() => { w = Win32.search(queryText,_settings); });
+                Win32[]  programs = Win32.search(query.Search,_settings);
+//              return  results1.Select(p => { p.Result(query.Search, _context.API); }).ToList();
+   Log.Info("aaaaaabbeeebbb "+sw.ElapsedMilliseconds);
+                var results = programs.AsParallel().Select(p =>
+                {
+                    var result1 = p.Result(query.Search, _context.API);
+                    return result1;
+                }).ToList();
+                Log.Info("aaaaaabbbbb "+sw.ElapsedMilliseconds);
+
+                return results;
+//                var results2 = _uwps.AsParallel().Select(p => p.Result(query.Search, _context.API));
+//                var result = results1.Concat(results2).Where(r => r.Score > 0).ToList();
+//                return result;
             }
         }
 
@@ -77,20 +91,20 @@ namespace Wox.Plugin.Program
             {
                 w = Win32.All(_settings);
             });
-            var t2 = Task.Run(() =>
-            {
-                var windows10 = new Version(10, 0);
-                var support = Environment.OSVersion.Version.Major >= windows10.Major;
-                if (support)
-                {
-                    u = UWP.All();
-                }
-                else
-                {
-                    u = new UWP.Application[] { };
-                }
-            });
-            Task.WaitAll(t1, t2);
+//            var t2 = Task.Run(() =>
+//            {
+//                var windows10 = new Version(10, 0);
+//                var support = Environment.OSVersion.Version.Major >= windows10.Major;
+//                if (support)
+//                {
+//                    u = UWP.All();
+//                }
+//                else
+//                {
+//                    u = new UWP.Application[] { };
+//                }
+//            });
+            Task.WaitAll(t1);
 
             lock (IndexLock)
             {

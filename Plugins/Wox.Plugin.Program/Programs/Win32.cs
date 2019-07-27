@@ -7,10 +7,13 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
+using System.Threading;
 using Microsoft.Win32;
 using Shell;
 using Wox.Infrastructure;
 using Wox.Infrastructure.Logger;
+using Stopwatch = System.Diagnostics.Stopwatch;
+using ThreadPool = Windows.System.Threading.ThreadPool;
 
 namespace Wox.Plugin.Program.Programs
 {
@@ -36,7 +39,7 @@ namespace Wox.Plugin.Program.Programs
             var score3 = StringMatcher.Score(Description, query);
             var score4 = StringMatcher.ScoreForPinyin(Description, query);
             var score5 = StringMatcher.Score(ExecutableName, query);
-            var score = new[] { score1, score2, score3, score4, score5 }.Max();
+            var score = new[] {score1, score2, score3, score4, score5}.Max();
             return score;
         }
 
@@ -114,7 +117,6 @@ namespace Wox.Plugin.Program.Programs
         }
 
 
-
         public override string ToString()
         {
             return ExecutableName;
@@ -134,52 +136,57 @@ namespace Wox.Plugin.Program.Programs
             return p;
         }
 
-        private static Win32 LnkProgram(string path)
+        private static Win32 LnkProgram(FilterScoreItem item)
         {
+            var path = item.Path;
             var program = Win32Program(path);
             try
             {
-                var link = new ShellLink();
-                const uint STGM_READ = 0;
-                ((IPersistFile)link).Load(path, STGM_READ);
-                var hwnd = new _RemotableHandle();
-                link.Resolve(ref hwnd, 0);
-
-                const int MAX_PATH = 260;
-                StringBuilder buffer = new StringBuilder(MAX_PATH);
-
-                var data = new _WIN32_FIND_DATAW();
-                const uint SLGP_SHORTPATH = 1;
-                link.GetPath(buffer, buffer.Capacity, ref data, SLGP_SHORTPATH);
-                var target = buffer.ToString();
-                if (!string.IsNullOrEmpty(target))
-                {
-                    var extension = Extension(target);
-                    if (extension == ExeExtension && File.Exists(target))
-                    {
-                        buffer = new StringBuilder(MAX_PATH);
-                        link.GetDescription(buffer, MAX_PATH);
-                        var description = buffer.ToString();
-                        if (!string.IsNullOrEmpty(description))
-                        {
-                            program.Description = description;
-                        }
-                        else
-                        {
-                            var info = FileVersionInfo.GetVersionInfo(target);
-                            if (!string.IsNullOrEmpty(info.FileDescription))
-                            {
-                                program.Description = info.FileDescription;
-                            }
-                        }
-                    }
-                }
+//                var link = new ShellLink();
+//                const uint STGM_READ = 0;
+//                ((IPersistFile)link).Load(path, STGM_READ);
+//                var hwnd = new _RemotableHandle();
+//                link.Resolve(ref hwnd, 0);
+//                const int MAX_PATH = 260;
+//                StringBuilder buffer = new StringBuilder(MAX_PATH);
+//
+//                var data = new _WIN32_FIND_DATAW();
+//                const uint SLGP_SHORTPATH = 1;
+//                link.GetPath(buffer, buffer.Capacity, ref data, SLGP_SHORTPATH);
+//                var target = buffer.ToString();
+//                if (!string.IsNullOrEmpty(target))
+//                {
+//                    var extension = Extension(target);
+//                    if (extension == ExeExtension && File.Exists(target))
+//                    {
+//                        Log.Info("|App.OnStartup|eeeeeee Wox saaaaatartup -------------------------------------5---------------"+path);
+//                        buffer = new StringBuilder(MAX_PATH);
+//                        link.GetDescription(buffer, MAX_PATH);
+//                        var description = buffer.ToString();
+//                        Log.Info("|App.OnStartup|eeeeeee Wox saaaaatartup -------------------------------------88--------------"+path);
+//                        if (!string.IsNullOrEmpty(description))
+//                        {
+//                            program.Description = description;
+//                        }
+//                        else
+//                        {
+//                            Log.Info("|App.OnStartup|eeeeeee Wox saaaaatartup -----------------------------6-----------------------"+path);
+//                            var info = FileVersionInfo.GetVersionInfo(target);
+//                            if (!string.IsNullOrEmpty(info.FileDescription))
+//                            {
+//                                program.Description = info.FileDescription;
+//                            }
+//                        }
+//                    }
+//                }
+//                Log.Info("|App.OnStartup|eeeeeee Wox saaaaatartup ----------------------------------------------------"+path);
                 return program;
             }
             catch (COMException e)
             {
                 // C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\MiracastView.lnk always cause exception
-                Log.Exception($"|Win32.LnkProgram|COMException when parsing shortcut <{path}> with HResult <{e.HResult}>", e);
+                Log.Exception(
+                    $"|Win32.LnkProgram|COMException when parsing shortcut <{path}> with HResult <{e.HResult}>", e);
                 program.Valid = false;
                 return program;
             }
@@ -199,54 +206,30 @@ namespace Wox.Plugin.Program.Programs
             {
                 program.Description = info.FileDescription;
             }
+
             return program;
         }
 
+        private static IEnumerable<string> ProgramPaths(string directory, string suffixes)
+        {
+            if (!Directory.Exists(directory))
+                return new string[] { };
+
+            return Directory.EnumerateFiles(directory, $"*.{suffixes}",
+                SearchOption.AllDirectories);
+        }
         private static IEnumerable<string> ProgramPaths(string directory, string[] suffixes)
         {
             if (!Directory.Exists(directory))
                 return new string[] { };
-            var files = new List<string>();
-            var folderQueue = new Queue<string>();
-            folderQueue.Enqueue(directory);
-            do
-            {
-                var currentDirectory = folderQueue.Dequeue();
-                try
-                {
-                    foreach (var suffix in suffixes)
-                    {
-                        try
-                        {
-                            files.AddRange(Directory.EnumerateFiles(currentDirectory, $"*.{suffix}", SearchOption.TopDirectoryOnly));
-                        }
-                        catch (DirectoryNotFoundException e)
-                        {
-                            Log.Exception($"|Program.Win32.ProgramPaths|skip directory(<{currentDirectory}>)", e);
-                            continue;
-                        }
-                    }
-                }
-                catch (Exception e) when (e is SecurityException || e is UnauthorizedAccessException)
-                {
-                    Log.Exception($"|Program.Win32.ProgramPaths|Don't have permission on <{currentDirectory}>", e);
-                }
 
-                try
-                {
-                    foreach (var childDirectory in Directory.EnumerateDirectories(currentDirectory, "*", SearchOption.TopDirectoryOnly))
-                    {
-                        folderQueue.Enqueue(childDirectory);
-                    }
-                }
-                catch (Exception e) when (e is SecurityException || e is UnauthorizedAccessException)
-                {
-                    Log.Exception($"|Program.Win32.ProgramPaths|Don't have permission on <{currentDirectory}>", e);
-                }
-            } while (folderQueue.Any());
+
+            var files = new List<string>();
+            foreach (var suffix in suffixes)
+            files.AddRange(Directory.EnumerateFiles(directory, $"*.{suffix}",
+                SearchOption.AllDirectories));
             return files;
         }
-
         private static string Extension(string path)
         {
             var extension = Path.GetExtension(path)?.ToLower();
@@ -260,33 +243,62 @@ namespace Wox.Plugin.Program.Programs
             }
         }
 
-        private static ParallelQuery<Win32> UnregisteredPrograms(List<Settings.ProgramSource> sources, string[] suffixes)
+        private static ParallelQuery<Win32> UnregisteredPrograms(List<Settings.ProgramSource> sources,
+            string[] suffixes)
         {
-            var paths = sources.Where(s => Directory.Exists(s.Location))
-                               .SelectMany(s => ProgramPaths(s.Location, suffixes))
-                               .ToArray();
-            var programs1 = paths.AsParallel().Where(p => Extension(p) == ExeExtension).Select(ExeProgram);
-            var programs2 = paths.AsParallel().Where(p => Extension(p) == ShortcutExtension).Select(ExeProgram);
-            var programs3 = from p in paths.AsParallel()
-                            let e = Extension(p)
-                            where e != ShortcutExtension && e != ExeExtension
-                            select Win32Program(p);
+
+            var folderQueue = new Queue<string>();
+            foreach (var programSource in sources)
+            {
+            }
+            folderQueue.Enqueue(directory);
+
             return programs1.Concat(programs2).Concat(programs3);
         }
 
-        private static ParallelQuery<Win32> StartMenuPrograms(string[] suffixes)
+//        private static ParallelQuery<Win32> StartMenuPrograms(string[] suffixes)
+//        {
+//            var directory1 = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
+//            var directory2 = Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms);
+//            var paths1 = ProgramPaths(directory1, suffixes);
+//            var paths2 = ProgramPaths(directory2, suffixes);
+//            var paths = paths1.Concat(paths2).ToArray();
+//            var programs1 = paths.AsParallel().Where(p => Extension(p) == ShortcutExtension).Select(LnkProgram);
+//            var programs2 = paths.AsParallel().Where(p => Extension(p) == ApplicationReferenceExtension).Select(Win32Program);
+//            var programs = programs1.Concat(programs2).Where(p => p.Valid);
+//            return programs;
+//        }
+        private static ParallelQuery<Win32> SearchPrograms(String searchText, Settings settings)
         {
-            var directory1 = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
-            var directory2 = Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms);
-            var paths1 = ProgramPaths(directory1, suffixes);
-            var paths2 = ProgramPaths(directory2, suffixes);
-            var paths = paths1.Concat(paths2).ToArray();
-            var programs1 = paths.AsParallel().Where(p => Extension(p) == ShortcutExtension).Select(LnkProgram);
-            var programs2 = paths.AsParallel().Where(p => Extension(p) == ApplicationReferenceExtension).Select(Win32Program);
-            var programs = programs1.Concat(programs2).Where(p => p.Valid);
-            return programs;
-        }
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+            var directory = Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms);
+            var path = ProgramPaths(directory, "lnk");
 
+            UnregisteredPrograms(settings.ProgramSources, settings.ProgramSuffixes);
+
+
+            var programs = path.AsParallel()
+                .Where(p => { return Extension(p) == ShortcutExtension; })
+                .Select(p =>
+                {
+//                var score = StringMatcher.ScoreForPinyinOrEng(Path.GetFileNameWithoutExtension(p), searchText);
+                    var random = new Random();
+                    return new FilterScoreItem(p, random.Next());
+                })
+                .OrderBy(p => p.Score)
+                .ToList();
+
+            if (programs.Count > 20)
+            {
+                programs = programs.GetRange(0, 20);
+            }
+
+
+//            var programs = programs1.Concat(programs2).Where(p => p.Valid);
+            var searchStartMenuPrograms = programs.AsParallel().Select(LnkProgram);
+            return searchStartMenuPrograms;
+        }
 
         private static ParallelQuery<Win32> AppPathsPrograms(string[] suffixes)
         {
@@ -300,6 +312,7 @@ namespace Wox.Plugin.Program.Programs
                     programs.AddRange(ProgramsFromRegistryKey(root));
                 }
             }
+
             using (var root = Registry.CurrentUser.OpenSubKey(appPaths))
             {
                 if (root != null)
@@ -307,6 +320,24 @@ namespace Wox.Plugin.Program.Programs
                     programs.AddRange(ProgramsFromRegistryKey(root));
                 }
             }
+
+            var filtered = programs.AsParallel().Where(p => suffixes.Contains(Extension(p.ExecutableName)));
+            return filtered;
+        }
+
+        private static ParallelQuery<Win32> SearchAppPathsPrograms(string[] suffixes)
+        {
+            // https://msdn.microsoft.com/en-us/library/windows/desktop/ee872121
+            const string appPaths = @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths";
+            var programs = new List<Win32>();
+            using (var root = Registry.CurrentUser.OpenSubKey(appPaths))
+            {
+                if (root != null)
+                {
+                    programs.AddRange(ProgramsFromRegistryKey(root));
+                }
+            }
+
             var filtered = programs.AsParallel().Where(p => suffixes.Contains(Extension(p.ExecutableName)));
             return filtered;
         }
@@ -314,8 +345,8 @@ namespace Wox.Plugin.Program.Programs
         private static IEnumerable<Win32> ProgramsFromRegistryKey(RegistryKey root)
         {
             var programs = root.GetSubKeyNames()
-                               .Select(subkey => ProgramFromRegistrySubkey(root, subkey))
-                               .Where(p => !string.IsNullOrEmpty(p.Name));
+                .Select(subkey => ProgramFromRegistrySubkey(root, subkey))
+                .Where(p => !string.IsNullOrEmpty(p.Name));
             return programs;
         }
 
@@ -389,15 +420,45 @@ namespace Wox.Plugin.Program.Programs
                 var appPaths = AppPathsPrograms(settings.ProgramSuffixes);
                 programs = programs.Concat(appPaths);
             }
-            if (settings.EnableStartMenuSource)
-            {
-                var startMenu = StartMenuPrograms(settings.ProgramSuffixes);
-                programs = programs.Concat(startMenu);
-            }
+
+//            if (settings.EnableStartMenuSource)
+//            {
+//                var startMenu = StartMenuPrograms(settings.ProgramSuffixes);
+//                programs = programs.Concat(startMenu);
+//            }
             var unregistered = UnregisteredPrograms(settings.ProgramSources, settings.ProgramSuffixes);
             programs = programs.Concat(unregistered);
             //.Select(ScoreFilter);
             return programs.ToArray();
+        }
+
+        public static Win32[] search(String queryText, Settings settings)
+        {
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+            ParallelQuery<Win32> programs = new List<Win32>().AsParallel();
+//            if (settings.EnableRegistrySource)
+//            {
+//                var appPaths = AppPathsPrograms(settings.ProgramSuffixes);
+//                programs = programs.Concat(appPaths);
+//            }
+
+//            if (settings.EnableStartMenuSource)
+//            {
+                var startMenu = SearchPrograms(queryText, settings);
+                Log.Info("aa eeeee" + sw.ElapsedMilliseconds);
+                programs = programs.Concat(startMenu);
+
+
+//            }
+
+//            var unregistered = UnregisteredPrograms(settings.ProgramSources, settings.ProgramSuffixes);
+//            programs = programs.Concat(unregistered);
+            //.Select(ScoreFilter);
+            Log.Info("aa " + sw.ElapsedMilliseconds);
+            var win32s = programs.ToArray();
+            Log.Info("aaaaaa " + sw.ElapsedMilliseconds);
+            return win32s;
         }
     }
 }

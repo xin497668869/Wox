@@ -11,6 +11,8 @@
         <StackPanel Orientation="Horizontal">
             <Label Content="{DynamicResource wox_plugin_program_directory}"/>
             <TextBox Name="Directory" VerticalAlignment="Center" Width="300" Margin="0,7" />
+            <Label Content="优先级"/>
+            <TextBox Name="PriorityTextBox" VerticalAlignment="Center" Width="300" Margin="0,7" />
         </StackPanel>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Click="BrowseButton_Click" Content="{DynamicResource wox_plugin_program_browse}" 

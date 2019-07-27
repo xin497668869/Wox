@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Forms;
 using Wox.Plugin.Program.Programs;
+using TextBox = System.Windows.Controls.TextBox;
 
 namespace Wox.Plugin.Program
 {
@@ -12,6 +13,8 @@ namespace Wox.Plugin.Program
         private PluginInitContext _context;
         private Settings.ProgramSource _editing;
         private Settings _settings;
+//        private TextBox Directory;
+//        private TextBox PriorityTextBox;
 
         public AddProgramSource(PluginInitContext context, Settings settings)
         {
@@ -53,12 +56,14 @@ namespace Wox.Plugin.Program
                 var source = new Settings.ProgramSource
                 {
                     Location = Directory.Text,
+                    Priority = PriorityTextBox.Text,
                 };
                 _settings.ProgramSources.Add(source);
             }
             else
             {
                 _editing.Location = Directory.Text;
+                _editing.Priority = PriorityTextBox.Text;
             }
 
             DialogResult = true;

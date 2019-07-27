@@ -22,6 +22,7 @@ namespace Wox.Infrastructure
             }
         }
 
+
         public static int ScoreForPinyin(string source, string target)
         {
             if (!string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(target))
@@ -31,7 +32,7 @@ namespace Wox.Infrastructure
                     Log.Debug($"|Wox.Infrastructure.StringMatcher.ScoreForPinyin|skip too long string: {source}");
                     return 0;
                 }
-                
+
                 if (Alphabet.ContainsChinese(source))
                 {
                     FuzzyMatcher matcher = FuzzyMatcher.Create(target);
@@ -47,6 +48,39 @@ namespace Wox.Infrastructure
                 else
                 {
                     return 0;
+                }
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
+        public static int ScoreForPinyinOrEng(string source, string target)
+        {
+            if (!string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(target))
+            {
+                if(source.Length > 40)
+                {
+                    Log.Debug($"|Wox.Infrastructure.StringMatcher.ScoreForPinyin|skip too long string: {source}");
+                    return 0;
+                }
+                
+                if (Alphabet.ContainsChinese(source))
+                {
+                    FuzzyMatcher matcher = FuzzyMatcher.Create(target);
+                    var combination = Alphabet.PinyinComination(source);
+                    var pinyinScore = combination.Select(pinyin => matcher.Evaluate(string.Join("", pinyin)).Score)
+                        .Max();
+//                    var acronymScore = combination.Select(Alphabet.Acronym)
+//                        .Select(pinyin => matcher.Evaluate(pinyin).Score)
+//                        .Max();
+//                    var score = Math.Max(pinyinScore, acronymScore);
+                    return pinyinScore;
+                }
+                else
+                {
+                    return Score(source, target);
                 }
             }
             else
