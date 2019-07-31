@@ -6,12 +6,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Wox.Core;
 using Wox.Core.Plugin;
 using Wox.Core.Resource;
 using Wox.Helper;
 using Wox.Infrastructure;
-using Wox.Infrastructure.Http;
 using Wox.Infrastructure.Storage;
 using Wox.Infrastructure.UserSettings;
 using Wox.Plugin;
@@ -28,21 +26,24 @@ namespace Wox.ViewModel
             Settings = _storage.Load();
             Settings.PropertyChanged += (s, e) =>
             {
-                if (e.PropertyName == nameof(Settings.ActivateTimes))
-                {
-                    OnPropertyChanged(nameof(ActivatedTimes));
-                }
+                if (e.PropertyName == nameof(Settings.ActivateTimes)) OnPropertyChanged(nameof(ActivatedTimes));
             };
-
-
         }
 
         public Settings Settings { get; set; }
+
+        #region hotkey
+
+        public CustomPluginHotkey SelectedCustomPluginHotkey { get; set; }
+
+        #endregion
 
 
         public void Save()
         {
             _storage.Save();
+            //增加插件信息更新
+            PluginManager.Save();
         }
 
         #region general
@@ -53,19 +54,22 @@ namespace Wox.ViewModel
             public string Display { get; set; }
             public Infrastructure.UserSettings.LastQueryMode Value { get; set; }
         }
+
         public List<LastQueryMode> LastQueryModes
         {
             get
             {
-                List<LastQueryMode> modes = new List<LastQueryMode>();
-                var enums = (Infrastructure.UserSettings.LastQueryMode[])Enum.GetValues(typeof(Infrastructure.UserSettings.LastQueryMode));
+                var modes = new List<LastQueryMode>();
+                var enums = (Infrastructure.UserSettings.LastQueryMode[]) Enum.GetValues(
+                    typeof(Infrastructure.UserSettings.LastQueryMode));
                 foreach (var e in enums)
                 {
                     var key = $"LastQuery{e}";
                     var display = _translater.GetTranslation(key);
-                    var m = new LastQueryMode { Display = display, Value = e, };
+                    var m = new LastQueryMode {Display = display, Value = e};
                     modes.Add(m);
                 }
+
                 return modes;
             }
         }
@@ -92,18 +96,13 @@ namespace Wox.ViewModel
                     var d1 = settings[a.Metadata.ID].Disabled;
                     var d2 = settings[b.Metadata.ID].Disabled;
                     if (d1 == d2)
-                    {
                         return string.Compare(a.Metadata.Name, b.Metadata.Name, StringComparison.CurrentCulture);
-                    }
-                    else
-                    {
-                        return d1.CompareTo(d2);
-                    }
+                    return d1.CompareTo(d2);
                 });
 
                 var metadatas = plugins.Select(p => new PluginViewModel
                 {
-                    PluginPair = p,
+                    PluginPair = p
                 }).ToList();
                 return metadatas;
             }
@@ -121,14 +120,10 @@ namespace Wox.ViewModel
                     control.VerticalAlignment = VerticalAlignment.Stretch;
                     return control;
                 }
-                else
-                {
-                    return new Control();
-                }
+
+                return new Control();
             }
         }
-
-
 
         #endregion
 
@@ -138,7 +133,7 @@ namespace Wox.ViewModel
 
         public string SelectedTheme
         {
-            get { return Settings.Theme; }
+            get => Settings.Theme;
             set
             {
                 Settings.Theme = value;
@@ -161,7 +156,7 @@ namespace Wox.ViewModel
                     bitmap.BeginInit();
                     bitmap.StreamSource = memStream;
                     bitmap.EndInit();
-                    var brush = new ImageBrush(bitmap) { Stretch = Stretch.UniformToFill };
+                    var brush = new ImageBrush(bitmap) {Stretch = Stretch.UniformToFill};
                     return brush;
                 }
                 else
@@ -221,8 +216,8 @@ namespace Wox.ViewModel
             get
             {
                 if (Fonts.SystemFontFamilies.Count(o =>
-                    o.FamilyNames.Values != null &&
-                    o.FamilyNames.Values.Contains(Settings.QueryBoxFont)) > 0)
+                        o.FamilyNames.Values != null &&
+                        o.FamilyNames.Values.Contains(Settings.QueryBoxFont)) > 0)
                 {
                     var font = new FontFamily(Settings.QueryBoxFont);
                     return font;
@@ -249,7 +244,7 @@ namespace Wox.ViewModel
                         Settings.QueryBoxFontStyle,
                         Settings.QueryBoxFontWeight,
                         Settings.QueryBoxFontStretch
-                        ));
+                    ));
                 return typeface;
             }
             set
@@ -266,8 +261,8 @@ namespace Wox.ViewModel
             get
             {
                 if (Fonts.SystemFontFamilies.Count(o =>
-                    o.FamilyNames.Values != null &&
-                    o.FamilyNames.Values.Contains(Settings.ResultFont)) > 0)
+                        o.FamilyNames.Values != null &&
+                        o.FamilyNames.Values.Contains(Settings.ResultFont)) > 0)
                 {
                     var font = new FontFamily(Settings.ResultFont);
                     return font;
@@ -294,7 +289,7 @@ namespace Wox.ViewModel
                         Settings.ResultFontStyle,
                         Settings.ResultFontWeight,
                         Settings.ResultFontStretch
-                        ));
+                    ));
                 return typeface;
             }
             set
@@ -308,18 +303,15 @@ namespace Wox.ViewModel
 
         #endregion
 
-        #region hotkey
-
-        public CustomPluginHotkey SelectedCustomPluginHotkey { get; set; }
-
-        #endregion
-
         #region about
 
         public static string Github => Constant.Repository;
         public static string ReleaseNotes => @"https://github.com/Wox-launcher/Wox/releases/latest";
         public static string Version => Constant.Version;
-        public string ActivatedTimes => string.Format(_translater.GetTranslation("about_activate_times"), Settings.ActivateTimes);
+
+        public string ActivatedTimes =>
+            string.Format(_translater.GetTranslation("about_activate_times"), Settings.ActivateTimes);
+
         #endregion
     }
 }

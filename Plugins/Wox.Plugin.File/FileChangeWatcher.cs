@@ -1,10 +1,4 @@
-﻿using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
-using Wox.Infrastructure.Logger;
-using Wox.Plugin.Program.Programs;
-
-namespace Wox.Plugin.Program
+﻿namespace Wox.Plugin.Program
 {
     //internal static class FileChangeWatcher
     //{

@@ -5,19 +5,14 @@ using System.Windows.Markup;
 
 namespace Wox.Plugin.Program
 {
-    public class SuffixesConvert : MarkupExtension, IValueConverter
+    public class LocationConverter : MarkupExtension, IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            var text = value as string[];
-            if (text != null)
-            {
-                return string.Join(";", text);
-            }
-            else
-            {
+            var text = value as string;
+            if (string.IsNullOrEmpty(text))
                 return string.Empty;
-            }
+            return text;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

@@ -34,7 +34,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wox.Plugin.PluginManagement
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wox.Core", "Wox.Core\Wox.Core.csproj", "{B749F0DB-8E75-47DB-9E5E-265D16D0C0D2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wox.Plugin.Program", "Plugins\Wox.Plugin.Program\Wox.Plugin.Program.csproj", "{FDB3555B-58EF-4AE6-B5F1-904719637AB4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wox.Plugin.Program", "Plugins\Wox.Plugin.File\Wox.Plugin.File.csproj", "{FDB3555B-58EF-4AE6-B5F1-904719637AB4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wox.Plugin.WebSearch", "Plugins\Wox.Plugin.WebSearch\Wox.Plugin.WebSearch.csproj", "{403B57F2-1856-4FC7-8A24-36AB346B763E}"
 EndProject

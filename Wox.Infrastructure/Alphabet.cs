@@ -1,7 +1,7 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using hyjiacan.util.p4n;
 using hyjiacan.util.p4n.format;
 using Wox.Infrastructure.Logger;
@@ -12,8 +12,8 @@ namespace Wox.Infrastructure
     public static class Alphabet
     {
         private static readonly HanyuPinyinOutputFormat Format = new HanyuPinyinOutputFormat();
-        private static ConcurrentDictionary<string, string[][]> PinyinCache;
-        private static BinaryStorage<ConcurrentDictionary<string, string[][]>> _pinyinStorage;
+        private static ConcurrentDictionary<string, string> PinyinCache;
+        private static BinaryStorage<ConcurrentDictionary<string, string>> _pinyinStorage;
 
         public static void Initialize()
         {
@@ -21,12 +21,13 @@ namespace Wox.Infrastructure
 
             Stopwatch.Normal("|Wox.Infrastructure.Alphabet.Initialize|Preload pinyin cache", () =>
             {
-                _pinyinStorage = new BinaryStorage<ConcurrentDictionary<string, string[][]>>("Pinyin");
-                PinyinCache = _pinyinStorage.TryLoad(new ConcurrentDictionary<string, string[][]>());
+                _pinyinStorage = new BinaryStorage<ConcurrentDictionary<string, string>>("Pinyin");
+                PinyinCache = _pinyinStorage.TryLoad(new ConcurrentDictionary<string, string>());
                 // force pinyin library static constructor initialize
                 PinyinHelper.toHanyuPinyinStringArray('T', Format);
             });
-            Log.Info($"|Wox.Infrastructure.Alphabet.Initialize|Number of preload pinyin combination<{PinyinCache.Count}>");
+            Log.Info(
+                $"|Wox.Infrastructure.Alphabet.Init ialize|Number of preload pinyin combination<{PinyinCache.Count}>");
         }
 
         public static void Save()
@@ -35,8 +36,8 @@ namespace Wox.Infrastructure
         }
 
         /// <summary>
-        /// replace chinese character with pinyin, non chinese character won't be modified
-        /// <param name="word"> should be word or sentence, instead of single character. e.g. 微软 </param>
+        ///     replace chinese character with pinyin, non chinese character won't be modified
+        ///     <param name="word"> should be word or sentence, instead of single character. e.g. 微软 </param>
         /// </summary>
         public static string[] Pinyin(string word)
         {
@@ -50,47 +51,40 @@ namespace Wox.Infrastructure
         }
 
         /// <summmary>
-        /// replace chinese character with pinyin, non chinese character won't be modified
-        /// Because we don't have words dictionary, so we can only return all possiblie pinyin combination
-        /// e.g. 音乐 will return yinyue and yinle
-        /// <param name="characters"> should be word or sentence, instead of single character. e.g. 微软 </param>
+        ///     replace chinese character with pinyin, non chinese character won't be modified
+        ///     Because we don't have words dictionary, so we can only return all possiblie pinyin combination
+        ///     e.g. 音乐 will return yinyue and yinle
+        ///     <param name="characters"> should be word or sentence, instead of single character. e.g. 微软 </param>
         /// </summmary>
-        public static string[][] PinyinComination(string characters)
+        public static string PinyinComination(string characters)
         {
             if (!string.IsNullOrEmpty(characters))
             {
                 if (!PinyinCache.ContainsKey(characters))
                 {
-
-                    var allPinyins = new List<string[]>();
+                    var allPinyins = new List<string>();
                     foreach (var c in characters)
                     {
                         var pinyins = PinyinHelper.toHanyuPinyinStringArray(c, Format);
                         if (pinyins != null)
-                        {
-                            var r = pinyins.Distinct().ToArray();
-                            allPinyins.Add(r);
-                        }
+                            for (var i = 0; i < pinyins.Length; i++)
+                            {
+                                var titleCase = Thread.CurrentThread.CurrentCulture.TextInfo.ToTitleCase(pinyins[i]);
+                                allPinyins.Add(titleCase);
+                            }
                         else
-                        {
-                            var r = new[] { c.ToString() };
-                            allPinyins.Add(r);
-                        }
+                            allPinyins.Add(c.ToString());
                     }
 
-                    var combination = allPinyins.Aggregate(Combination).Select(c => c.Split(';')).ToArray();
+                    var combination = string.Join("", allPinyins);
                     PinyinCache[characters] = combination;
                     return combination;
                 }
-                else
-                {
-                    return PinyinCache[characters];
-                }
+
+                return PinyinCache[characters];
             }
-            else
-            {
-                return new string[][] { };
-            }
+
+            return "";
         }
 
         public static string Acronym(string[] pinyin)
@@ -102,7 +96,7 @@ namespace Wox.Infrastructure
         public static bool ContainsChinese(string word)
         {
             var chinese = word.Select(PinyinHelper.toHanyuPinyinStringArray)
-                              .Any(p => p != null);
+                .Any(p => p != null);
             return chinese;
         }
 
@@ -115,7 +109,5 @@ namespace Wox.Infrastructure
             ).ToArray();
             return combination;
         }
-
-
     }
 }

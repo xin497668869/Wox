@@ -1,28 +1,15 @@
-using System;
-
 namespace Wox.Infrastructure
 {
     public class FilterScoreItem
     {
-        private String path;
-        private int score;
-
-        public FilterScoreItem(string path, int score)
+        public FilterScoreItem(string path, double score)
         {
-            this.path = path;
-            this.score = score;
+            Path = path;
+            Score = score;
         }
 
-        public string Path
-        {
-            get => path;
-            set => path = value;
-        }
+        public string Path { get; set; }
 
-        public int Score
-        {
-            get => score;
-            set => score = value;
-        }
+        public double Score { get; set; }
     }
 }

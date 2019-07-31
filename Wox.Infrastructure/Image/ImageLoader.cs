@@ -30,15 +30,16 @@ namespace Wox.Infrastructure.Image
 
         public static void Initialize()
         {
-            _storage = new BinaryStorage<ConcurrentDictionary<string, int>> ("Image");
+            _storage = new BinaryStorage<ConcurrentDictionary<string, int>>("Image");
             ImageCache.Usage = _storage.TryLoad(new ConcurrentDictionary<string, int>());
 
-            foreach (var icon in new[] { Constant.DefaultIcon, Constant.ErrorIcon })
+            foreach (var icon in new[] {Constant.DefaultIcon, Constant.ErrorIcon})
             {
                 ImageSource img = new BitmapImage(new Uri(icon));
                 img.Freeze();
                 ImageCache[icon] = img;
             }
+
             Task.Run(() =>
             {
                 Stopwatch.Normal("|ImageLoader.Initialize|Preload images cost", () =>
@@ -46,10 +47,7 @@ namespace Wox.Infrastructure.Image
                     ImageCache.Usage.AsParallel().Where(i => !ImageCache.ContainsKey(i.Key)).ForAll(i =>
                     {
                         var img = Load(i.Key);
-                        if (img != null)
-                        {
-                            ImageCache[i.Key] = img;
-                        }
+                        if (img != null) ImageCache[i.Key] = img;
                     });
                 });
                 Log.Info($"|ImageLoader.Initialize|Number of preload images is <{ImageCache.Usage.Count}>");
@@ -61,31 +59,20 @@ namespace Wox.Infrastructure.Image
             ImageCache.Cleanup();
             _storage.Save(ImageCache.Usage);
         }
-        
+
         public static ImageSource Load(string path, bool loadFullImage = false)
         {
             ImageSource image;
             try
             {
-                if (string.IsNullOrEmpty(path))
-                {
-                    return ImageCache[Constant.ErrorIcon];
-                }
-                if (ImageCache.ContainsKey(path))
-                {
-                    return ImageCache[path];
-                }
-                
-                if (path.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new BitmapImage(new Uri(path));
-                }
+                if (string.IsNullOrEmpty(path)) return ImageCache[Constant.ErrorIcon];
+                if (ImageCache.ContainsKey(path)) return ImageCache[path];
+
+                if (path.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) return new BitmapImage(new Uri(path));
 
                 if (!Path.IsPathRooted(path))
-                {
                     path = Path.Combine(Constant.ProgramDirectory, "Images", Path.GetFileName(path));
-                }
-               
+
                 if (Directory.Exists(path))
                 {
                     /* Directories can also have thumbnails instead of shell icons.
@@ -103,23 +90,19 @@ namespace Wox.Infrastructure.Image
                     if (ImageExtensions.Contains(extension))
                     {
                         if (loadFullImage)
-                        {
                             image = LoadFullImage(path);
-                        }
                         else
-                        {
                             /* Although the documentation for GetImage on MSDN indicates that 
-                             * if a thumbnail is available it will return one, this has proved to not
-                             * be the case in many situations while testing. 
-                             * - Solution: explicitly pass the ThumbnailOnly flag
-                             */
+                                 * if a thumbnail is available it will return one, this has proved to not
+                                 * be the case in many situations while testing. 
+                                 * - Solution: explicitly pass the ThumbnailOnly flag
+                                 */
                             image = WindowsThumbnailProvider.GetThumbnail(path, Constant.ThumbnailSize,
                                 Constant.ThumbnailSize, ThumbnailOptions.ThumbnailOnly);
-                        }
                     }
                     else
                     {
-                        image = WindowsThumbnailProvider.GetThumbnail(path, Constant.ThumbnailSize,
+                        image = WindowsThumbnailProvider.GetIcon(path, Constant.ThumbnailSize,
                             Constant.ThumbnailSize, ThumbnailOptions.None);
                     }
                 }
@@ -128,6 +111,7 @@ namespace Wox.Infrastructure.Image
                     image = ImageCache[Constant.ErrorIcon];
                     path = Constant.ErrorIcon;
                 }
+
                 ImageCache[path] = image;
                 image.Freeze();
             }
@@ -138,12 +122,13 @@ namespace Wox.Infrastructure.Image
                 image = ImageCache[Constant.ErrorIcon];
                 ImageCache[path] = image;
             }
+
             return image;
         }
 
         private static BitmapImage LoadFullImage(string path)
         {
-            BitmapImage image = new BitmapImage();
+            var image = new BitmapImage();
             image.BeginInit();
             image.CacheOption = BitmapCacheOption.OnLoad;
             image.UriSource = new Uri(path);
