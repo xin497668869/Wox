@@ -79,7 +79,7 @@ namespace Wox.ViewModel
         {
             foreach (var pair in PluginManager.GetPluginsForInterface<IResultUpdated>())
             {
-                var plugin = (IResultUpdated)pair.Plugin;
+                var plugin = (IResultUpdated) pair.Plugin;
                 plugin.ResultsUpdated += (s, e) =>
                 {
                     Task.Run(() =>
@@ -106,30 +106,15 @@ namespace Wox.ViewModel
                 }
             });
 
-            SelectNextItemCommand = new RelayCommand(_ =>
-            {
-                SelectedResults.SelectNextResult();
-            });
+            SelectNextItemCommand = new RelayCommand(_ => { SelectedResults.SelectNextResult(); });
 
-            SelectPrevItemCommand = new RelayCommand(_ =>
-            {
-                SelectedResults.SelectPrevResult();
-            });
+            SelectPrevItemCommand = new RelayCommand(_ => { SelectedResults.SelectPrevResult(); });
 
-            SelectNextPageCommand = new RelayCommand(_ =>
-            {
-                SelectedResults.SelectNextPage();
-            });
+            SelectNextPageCommand = new RelayCommand(_ => { SelectedResults.SelectNextPage(); });
 
-            SelectPrevPageCommand = new RelayCommand(_ =>
-            {
-                SelectedResults.SelectPrevPage();
-            });
+            SelectPrevPageCommand = new RelayCommand(_ => { SelectedResults.SelectPrevPage(); });
 
-            StartHelpCommand = new RelayCommand(_ =>
-            {
-                Process.Start("http://doc.wox.one/");
-            });
+            StartHelpCommand = new RelayCommand(_ => { Process.Start("http://doc.wox.one/"); });
 
             OpenResultCommand = new RelayCommand(index =>
             {
@@ -196,6 +181,7 @@ namespace Wox.ViewModel
         public ResultsViewModel History { get; private set; }
 
         private string _queryText;
+
         public string QueryText
         {
             get { return _queryText; }
@@ -216,10 +202,12 @@ namespace Wox.ViewModel
             QueryTextCursorMovedToEnd = true;
             QueryText = queryText;
         }
+
         public bool LastQuerySelected { get; set; }
         public bool QueryTextCursorMovedToEnd { get; set; }
 
         private ResultsViewModel _selectedResults;
+
         private ResultsViewModel SelectedResults
         {
             get { return _selectedResults; }
@@ -251,6 +239,7 @@ namespace Wox.ViewModel
                         QueryText = string.Empty;
                     }
                 }
+
                 _selectedResults.Visbility = Visibility.Visible;
             }
         }
@@ -268,6 +257,7 @@ namespace Wox.ViewModel
         public ICommand LoadContextMenuCommand { get; set; }
         public ICommand LoadHistoryCommand { get; set; }
         public ICommand OpenResultCommand { get; set; }
+        public ICommand EnterContextItem { get; set; }
 
         #endregion
 
@@ -298,8 +288,8 @@ namespace Wox.ViewModel
             if (selected != null) // SelectedItem returns null if selection is empty.
             {
                 var results = PluginManager.GetContextMenusForPlugin(selected);
-                results.Add(ContextMenuTopMost(selected));
-                results.Add(ContextMenuPluginInfo(selected.PluginID));
+//                results.Add(ContextMenuTopMost(selected));
+//                results.Add(ContextMenuPluginInfo(selected.PluginID));
 
                 if (!string.IsNullOrEmpty(query))
                 {
@@ -333,7 +323,7 @@ namespace Wox.ViewModel
                     Title = string.Format(title, h.Query),
                     SubTitle = string.Format(time, h.ExecutedDateTime),
                     IcoPath = "Images\\history.png",
-                    OriginQuery = new Query { RawQuery = h.Query },
+                    OriginQuery = new Query {RawQuery = h.Query},
                     Action = _ =>
                     {
                         SelectedResults = Results;
@@ -411,7 +401,6 @@ namespace Wox.ViewModel
                             var config = _settings.PluginSettings.Plugins[plugin.Metadata.ID];
                             if (!config.Disabled)
                             {
-
                                 var results = PluginManager.QueryForPlugin(plugin, query);
                                 UpdateResultView(results, plugin.Metadata, query);
                             }
@@ -460,6 +449,7 @@ namespace Wox.ViewModel
                     }
                 };
             }
+
             return menu;
         }
 
@@ -505,6 +495,7 @@ namespace Wox.ViewModel
             var selected = SelectedResults == History;
             return selected;
         }
+
         #region Hotkey
 
         private void SetHotkey(string hotkeyStr, EventHandler<HotkeyEventArgs> action)
@@ -523,7 +514,8 @@ namespace Wox.ViewModel
             catch (Exception)
             {
                 string errorMsg =
-                    string.Format(InternationalizationManager.Instance.GetTranslation("registerHotkeyFailed"), hotkeyStr);
+                    string.Format(InternationalizationManager.Instance.GetTranslation("registerHotkeyFailed"),
+                        hotkeyStr);
                 MessageBox.Show(errorMsg);
             }
         }
@@ -568,7 +560,6 @@ namespace Wox.ViewModel
         {
             if (!ShouldIgnoreHotkeys())
             {
-
                 if (_settings.LastQueryMode == LastQueryMode.Empty)
                 {
                     ChangeQueryText(string.Empty);

@@ -11,7 +11,7 @@ namespace Wox.Plugin.Everything
 
         public List<ContextMenu> ContextMenus = new List<ContextMenu>();
 
-        public int MaxSearchCount { get; set; } = 100;
+        public int MaxSearchCount { get; set; } = 50;
 
         public bool UseLocationAsWorkingDir { get; set; } = false;
     }

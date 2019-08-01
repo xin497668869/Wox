@@ -95,6 +95,12 @@ namespace Wox.Plugin.Program
             {
                 Process.Start(info);
                 hide = true;
+                _settings.HistorySources.Remove(info.FileName);
+                _settings.HistorySources.Add(info.FileName);
+                if (_settings.HistorySources.Count > 100)
+                {
+                    _settings.HistorySources.RemoveRange(100 - 1, _settings.HistorySources.Count - 100);
+                }
             }
             catch (Exception)
             {

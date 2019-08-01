@@ -20,17 +20,24 @@ namespace Wox.Plugin.Program
             _settings = settings;
         }
 
+        private void ReIndexing()
+        {
+            programSourceView.Items.Refresh();
+            programHistoryView.Items.Refresh();
+        }
+
         private void Setting_Loaded(object sender, RoutedEventArgs e)
         {
             programSourceView.ItemsSource = _settings.ProgramSources;
+            programHistoryView.ItemsSource = _settings.HistorySources;
         }
 
 
         private void btnAddProgramSource_OnClick(object sender, RoutedEventArgs e)
         {
             var add = new AddProgramSource(context, _settings);
-
             add.ShowDialog();
+            ReIndexing();
         }
 
         private void btnDeleteProgramSource_OnClick(object sender, RoutedEventArgs e)
@@ -42,7 +49,10 @@ namespace Wox.Plugin.Program
                     selectedProgramSource.Location);
 
                 if (MessageBox.Show(msg, string.Empty, MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                {
                     _settings.ProgramSources.Remove(selectedProgramSource);
+                    ReIndexing();
+                }
             }
             else
             {
@@ -53,11 +63,15 @@ namespace Wox.Plugin.Program
 
         private void btnEditProgramSource_OnClick(object sender, RoutedEventArgs e)
         {
+
             var selectedProgramSource = programSourceView.SelectedItem as Settings.ProgramSource;
             if (selectedProgramSource != null)
             {
                 var add = new AddProgramSource(selectedProgramSource, _settings);
-                add.ShowDialog();
+                if (add.ShowDialog() ?? false)
+                {
+                    ReIndexing();
+                }
             }
             else
             {
@@ -86,6 +100,11 @@ namespace Wox.Plugin.Program
                         {
                             Location = s
                         });
+        }
+
+        private void cleanHistoryClick(object sender, RoutedEventArgs e)
+        {
+           _settings .HistorySources.Clear();
         }
     }
 }

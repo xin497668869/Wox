@@ -22,7 +22,6 @@ namespace Wox
 {
     public partial class MainWindow
     {
-
         #region Private Fields
 
         private readonly Storyboard _progressBarStoryboard = new Storyboard();
@@ -39,6 +38,7 @@ namespace Wox
             _settings = settings;
             InitializeComponent();
         }
+
         public MainWindow()
         {
             InitializeComponent();
@@ -141,7 +141,8 @@ namespace Wox
 
         private void InitProgressbarAnimation()
         {
-            var da = new DoubleAnimation(ProgressBar.X2, ActualWidth + 100, new Duration(new TimeSpan(0, 0, 0, 0, 1600)));
+            var da = new DoubleAnimation(ProgressBar.X2, ActualWidth + 100,
+                new Duration(new TimeSpan(0, 0, 0, 0, 1600)));
             var da1 = new DoubleAnimation(ProgressBar.X1, ActualWidth, new Duration(new TimeSpan(0, 0, 0, 0, 1600)));
             Storyboard.SetTargetProperty(da, new PropertyPath("(Line.X2)"));
             Storyboard.SetTargetProperty(da1, new PropertyPath("(Line.X1)"));
@@ -157,14 +158,15 @@ namespace Wox
             if (e.ChangedButton == MouseButton.Left) DragMove();
         }
 
+
         private void OnPreviewMouseButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (sender != null && e.OriginalSource != null)
             {
-                var r = (ResultListBox)sender;
-                var d = (DependencyObject)e.OriginalSource;
+                var r = (ResultListBox) sender;
+                var d = (DependencyObject) e.OriginalSource;
                 var item = ItemsControl.ContainerFromElement(r, d) as ListBoxItem;
-                var result = (ResultViewModel)item?.DataContext;
+                var result = (ResultViewModel) item?.DataContext;
                 if (result != null)
                 {
                     if (e.ChangedButton == MouseButton.Left)
@@ -185,7 +187,7 @@ namespace Wox
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 // Note that you can have more than one file.
-                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                string[] files = (string[]) e.Data.GetData(DataFormats.FileDrop);
                 if (files[0].ToLower().EndsWith(".wox"))
                 {
                     PluginManager.InstallPlugin(files[0]);
@@ -195,6 +197,7 @@ namespace Wox
                     MessageBox.Show(InternationalizationManager.Instance.GetTranslation("invalidWoxPluginFileFormat"));
                 }
             }
+
             e.Handled = false;
         }
 
@@ -294,7 +297,6 @@ namespace Wox
                 _viewModel.QueryTextCursorMovedToEnd = false;
             }
         }
-
 
     }
 }

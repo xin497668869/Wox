@@ -5,6 +5,7 @@ namespace Wox.Plugin.Program
     public class Settings
     {
         public List<ProgramSource> ProgramSources { get; set; } = new List<ProgramSource>();
+        public List<string> HistorySources { get; set; } = new List<string>();
 
         public class ProgramSource
         {
@@ -25,5 +26,23 @@ namespace Wox.Plugin.Program
 
             public int Deep { get; set; }
         }
+
+
+//        public class HistorySource
+//        {
+//            public HistorySource()
+//            {
+//            }
+//
+//            public HistorySource(string location, string date)
+//            {
+//                Location = location;
+//                Date = date;
+//            }
+//
+//            public string Location { get; set; }
+//
+//            public int Date { get; set; }
+//        }
     }
 }

@@ -8,8 +8,10 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using Wox.Infrastructure;
+using Wox.Infrastructure.Logger;
 using Wox.Infrastructure.Storage;
 using Wox.Plugin.Everything.Everything;
+using Stopwatch = System.Diagnostics.Stopwatch;
 
 namespace Wox.Plugin.Everything
 {
@@ -35,14 +37,13 @@ namespace Wox.Plugin.Everything
             if (!string.IsNullOrEmpty(query.Search))
             {
                 var keyword = query.Search;
-                if (_settings.MaxSearchCount <= 0)
-                {
-                    _settings.MaxSearchCount = 50;
-                }
 
                 try
                 {
+                    var sw = new Stopwatch();
+                    sw.Start();
                     var searchList = _api.Search(keyword, maxCount: _settings.MaxSearchCount).ToList();
+                    Log.Warn("==="+sw.ElapsedMilliseconds);
                     foreach (var s in searchList)
                     {
                         var path = s.FullPath;
@@ -53,7 +54,14 @@ namespace Wox.Plugin.Everything
 
                         Result r = new Result();
                         r.Title = Path.GetFileName(path);
-                        r.SubTitle = path;
+                        var modifiedDate = s.DateModified != 0
+                            ? DateTime.FromFileTime(s.DateModified).ToString("yyyy-MM-dd HH:mm:ss")
+                            : "                   ";
+                        var createdDate = s.DateCreated != 0
+                            ? DateTime.FromFileTime(s.DateCreated).ToString("yyyy-MM-dd HH:mm:ss")
+                            : "                   ";
+                        r.SubTitle = path + " \n" + getSizeFormat(s.Size) + "\t\t" + modifiedDate + "\t" +
+                                     createdDate;
                         r.IcoPath = path;
                         r.Action = c =>
                         {
@@ -75,11 +83,14 @@ namespace Wox.Plugin.Everything
                                 _context.API.ShowMsg(name, message, string.Empty);
                                 hide = false;
                             }
+
                             return hide;
                         };
                         r.ContextData = s;
                         results.Add(r);
                     }
+                    Log.Warn("===22 "+sw.ElapsedMilliseconds);
+
                 }
                 catch (IPCErrorException)
                 {
@@ -98,7 +109,8 @@ namespace Wox.Plugin.Everything
                         Action = _ =>
                         {
                             Clipboard.SetText(e.Message + "\r\n" + e.StackTrace);
-                            _context.API.ShowMsg(_context.API.GetTranslation("wox_plugin_everything_copied"), null, string.Empty);
+                            _context.API.ShowMsg(_context.API.GetTranslation("wox_plugin_everything_copied"), null,
+                                string.Empty);
                             return false;
                         },
                         IcoPath = "Images\\error.png"
@@ -131,7 +143,8 @@ namespace Wox.Plugin.Everything
 
             ContextMenu openWithEditorContextMenu = new ContextMenu
             {
-                Name = string.Format(_context.API.GetTranslation("wox_plugin_everything_open_with_editor"), Path.GetFileNameWithoutExtension(editorPath)),
+                Name = string.Format(_context.API.GetTranslation("wox_plugin_everything_open_with_editor"),
+                    Path.GetFileNameWithoutExtension(editorPath)),
                 Command = editorPath,
                 Argument = " \"{path}\"",
                 ImagePath = editorPath
@@ -157,6 +170,32 @@ namespace Wox.Plugin.Everything
             var sdkPath = Path.Combine(sdkDirectory, DLL);
             Constant.EverythingSDKPath = sdkPath;
             LoadLibrary(sdkPath);
+//            _api.init();
+        }
+
+        public string getSizeFormat(long size)
+        {
+            if (size < 1024)
+            {
+                return size + "B";
+            }
+
+            if (size < 1048576)
+            {
+                return size / 1024 + "KB";
+            }
+
+            if (size < 1073741824)
+            {
+                return size / 1048576 + "MB";
+            }
+
+            if (size < 1099511627776)
+            {
+                return size / 1073741824 + "GB";
+            }
+
+            return "-1";
         }
 
         private static string CpuType()
@@ -201,9 +240,12 @@ namespace Wox.Plugin.Everything
                             }
                             catch
                             {
-                                _context.API.ShowMsg(string.Format(_context.API.GetTranslation("wox_plugin_everything_canot_start"), record.FullPath), string.Empty, string.Empty);
+                                _context.API.ShowMsg(
+                                    string.Format(_context.API.GetTranslation("wox_plugin_everything_canot_start"),
+                                        record.FullPath), string.Empty, string.Empty);
                                 return false;
                             }
+
                             return true;
                         },
                         IcoPath = contextMenu.ImagePath
@@ -228,7 +270,7 @@ namespace Wox.Plugin.Everything
                 Title = _context.API.GetTranslation("wox_plugin_everything_copy"),
                 Action = (context) =>
                 {
-                    Clipboard.SetFileDropList(new System.Collections.Specialized.StringCollection { record.FullPath });
+                    Clipboard.SetFileDropList(new System.Collections.Specialized.StringCollection {record.FullPath});
                     return true;
                 },
                 IcoPath = icoPath
@@ -249,7 +291,9 @@ namespace Wox.Plugin.Everything
                         }
                         catch
                         {
-                            _context.API.ShowMsg(string.Format(_context.API.GetTranslation("wox_plugin_everything_canot_delete"), record.FullPath), string.Empty, string.Empty);
+                            _context.API.ShowMsg(
+                                string.Format(_context.API.GetTranslation("wox_plugin_everything_canot_delete"),
+                                    record.FullPath), string.Empty, string.Empty);
                             return false;
                         }
 
