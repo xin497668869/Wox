@@ -1,0 +1,12 @@
+{
+    "ID": "DB634BE6F3D34F6D9D64F7C2AEE3ECEC",
+    "ActionKeyword": "win",
+    "Name": "Switcheroo for Wox",
+    "Description": "The humble incremental-search task switcher for Wox",
+    "Author": "orzFly, Regin Larsen, James Sulak, qianlifeng",
+    "Version": "1.0.9",
+    "Language": "csharp",
+    "Website": "https://github.com/Wox-launcher/Wox.Plugin.Switcheroo",
+    "IcoPath": "Images\\switcheroo.png",
+    "ExecuteFileName": "Wox.Plugin.Switcheroo.dll"
+}

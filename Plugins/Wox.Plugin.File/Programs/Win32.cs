@@ -224,7 +224,7 @@ namespace Wox.Plugin.Program.Programs
                     pathAnalysis.init();
                     try
                     {
-                        var score = isMatch(pathAnalysis, searchText, 0, 0);
+                        var score = PathAnalysis.isMatch(pathAnalysis, searchText, 0, 0);
                         return new FilterScoreItem(p, score ? 1000 - pathAnalysis.pinYinName.Length : 0);
                     }
                     catch (Exception e)
@@ -246,33 +246,6 @@ namespace Wox.Plugin.Program.Programs
             return searchStartMenuPrograms;
         }
 
-        public static char getLowerChar(char source)
-        {
-            if (source <= 'Z' && source >= 'A') source = (char) (source + 'a' - 'A');
-
-            return source;
-        }
-
-        public static bool isMatch(PathAnalysis content, string query, int queryIndex, int contentIndex)
-        {
-            if (queryIndex >= query.Length) return true;
-
-            var isMatchUpper = false;
-            for (var j = contentIndex; j < content.pinYinName.Length; j++)
-            {
-                //如果前一个已经匹配了大写后剩余小写字符, 则需要过滤非小写的字符
-                if (content.pinYinName[j] >= 'A' && content.pinYinName[j] <= 'Z') isMatchUpper = true;
-
-                if (isMatchUpper && content.pinYinName[j] >= 'A' && content.pinYinName[j] <= 'Z'
-                    || !isMatchUpper)
-                    if (getLowerChar(content.pinYinName[j]) == getLowerChar(query[queryIndex]))
-                        if (isMatch(content, query, queryIndex + 1, j + 1))
-                            return true;
-            }
-
-
-            return false;
-        }
 
         private static IEnumerable<Win32> ProgramsFromRegistryKey(RegistryKey root)
         {

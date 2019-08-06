@@ -76,6 +76,7 @@
     <Compile Include="Image\ImageLoader.cs" />
     <Compile Include="Image\ThumbnailReader.cs" />
     <Compile Include="Logger\Log.cs" />
+    <Compile Include="PathAnalysis.cs" />
     <Compile Include="Storage\ISavable.cs" />
     <Compile Include="Storage\PluginJsonStorage.cs" />
     <Compile Include="Stopwatch.cs" />

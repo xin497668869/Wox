@@ -230,7 +230,6 @@ namespace Wox.Plugin.Everything.Everything
                                        RequestFlag.EVERYTHING_REQUEST_SIZE |
                                        RequestFlag.EVERYTHING_REQUEST_DATE_CREATED |
                                        RequestFlag.EVERYTHING_REQUEST_DATE_MODIFIED);
-            Log.Warn("22===22 "+sw.ElapsedMilliseconds);
             if (!Everything_QueryW(true))
             {
                 switch (Everything_GetLastError())

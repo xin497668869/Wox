@@ -24,10 +24,10 @@ namespace Wox.Core.Resource
         public Internationalization()
         {
             AddPluginLanguageDirectories();
-            LoadDefaultLanguage();
             // we don't want to load /Languages/en.xaml twice
             // so add wox language directory after load plugin language files
             AddWoxLanguageDirectory();
+            LoadDefaultLanguage();
         }
 
 
@@ -101,6 +101,7 @@ namespace Wox.Core.Resource
 
         private void RemoveOldLanguageFiles()
         {
+            Log.Info("##############");
             var dicts = Application.Current.Resources.MergedDictionaries;
             foreach (var r in _oldResources)
             {
