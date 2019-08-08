@@ -8,7 +8,8 @@ using Wox.Infrastructure.Logger;
 using Stopwatch = System.Diagnostics.Stopwatch;
 
 namespace Wox.Plugin.Program.Programs {
-    [Serializable] public class Win32 : IProgram {
+    [Serializable]
+    public class Win32 : IProgram {
         public string Name { get; set; }
         public string IcoPath { get; set; }
         public string FullPath { get; set; }
@@ -35,12 +36,13 @@ namespace Wox.Plugin.Program.Programs {
             };
 
             if (Description.Length >= Name.Length &&
-                Description.Substring(0, Name.Length) == Name)
+                Description.Substring(0, Name.Length) == Name) {
                 result.Title = Description;
-            else if (!string.IsNullOrEmpty(Description))
+            } else if (!string.IsNullOrEmpty(Description)) {
                 result.Title = $"{Name}: {Description}";
-            else
+            } else {
                 result.Title = Name;
+            }
 
             return result;
         }
@@ -115,15 +117,18 @@ namespace Wox.Plugin.Program.Programs {
         private static Win32 ExeProgram(string path) {
             var program = Win32Program(path);
             var info = FileVersionInfo.GetVersionInfo(path);
-            if (!string.IsNullOrEmpty(info.FileDescription)) program.Description = info.FileDescription;
+            if (!string.IsNullOrEmpty(info.FileDescription)) {
+                program.Description = info.FileDescription;
+            }
 
             return program;
         }
 
         private static IEnumerable<string> ProgramPaths() {
             var directory = Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms);
-            if (!Directory.Exists(directory))
+            if (!Directory.Exists(directory)) {
                 return new string[] { };
+            }
 
             return Directory.EnumerateFiles(directory, "*",
                 SearchOption.AllDirectories);
@@ -132,8 +137,10 @@ namespace Wox.Plugin.Program.Programs {
 
         private static string Extension(string path) {
             var extension = Path.GetExtension(path)?.ToLower();
-            if (!string.IsNullOrEmpty(extension))
+            if (!string.IsNullOrEmpty(extension)) {
                 return extension.Substring(1);
+            }
+
             return string.Empty;
         }
 
@@ -162,10 +169,11 @@ namespace Wox.Plugin.Program.Programs {
                         SearchOption.TopDirectoryOnly);
                     allSearchFile.AddRange(enumerateFiles);
 
-                    foreach (var directory in Directory.GetDirectories(programSource.Location))
+                    foreach (var directory in Directory.GetDirectories(programSource.Location)) {
                         folderQueue.Enqueue(new Settings.ProgramSource(directory,
                             parentDir.Priority,
                             programSource.Deep + 1));
+                    }
                 }
             }
 
@@ -195,8 +203,9 @@ namespace Wox.Plugin.Program.Programs {
                         var isMatch = PathAnalysis.isMatch(pathAnalysis, searchText, 0, 0);
                         if (isMatch) {
                             int score;
-                            if (settings.HistorySourcesMap.TryGetValue(p, out score))
+                            if (settings.HistorySourcesMap.TryGetValue(p, out score)) {
                                 return new FilterScoreItem(p, score);
+                            }
 
                             return new FilterScoreItem(p, 1000 - pathAnalysis.pinYinName.Length);
                         }
@@ -212,7 +221,9 @@ namespace Wox.Plugin.Program.Programs {
                 .OrderByDescending(p => p.Score)
                 .ToList();
 
-            if (programs.Count > 20) programs = programs.GetRange(0, 20);
+            if (programs.Count > 20) {
+                programs = programs.GetRange(0, 20);
+            }
 
 
 //            var programs = programs1.Concat(programs2).Where(p => p.Valid);

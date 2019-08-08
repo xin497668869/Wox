@@ -4,13 +4,11 @@ using System.Windows;
 using System.Windows.Forms;
 using MessageBox = System.Windows.MessageBox;
 
-namespace Wox.Plugin.Program
-{
+namespace Wox.Plugin.Program {
     /// <summary>
     ///     Interaction logic for AddProgramSource.xaml
     /// </summary>
-    public partial class AddProgramSource
-    {
+    public partial class AddProgramSource {
         private readonly PluginInitContext _context;
         private readonly Settings.ProgramSource _editing;
 
@@ -18,16 +16,14 @@ namespace Wox.Plugin.Program
 //        private TextBox Directory;
 //        private TextBox PriorityTextBox;
 
-        public AddProgramSource(PluginInitContext context, Settings settings)
-        {
+        public AddProgramSource(PluginInitContext context, Settings settings) {
             InitializeComponent();
             _context = context;
             _settings = settings;
             DirectoryTextBox.Focus();
         }
 
-        public AddProgramSource(Settings.ProgramSource edit, Settings settings)
-        {
+        public AddProgramSource(Settings.ProgramSource edit, Settings settings) {
             _editing = edit;
             _settings = settings;
 
@@ -37,34 +33,29 @@ namespace Wox.Plugin.Program
             DeepTextBox.Text = _editing.Deep + "";
         }
 
-        private void BrowseButton_Click(object sender, RoutedEventArgs e)
-        {
+        private void BrowseButton_Click(object sender, RoutedEventArgs e) {
             var dialog = new FolderBrowserDialog();
             var result = dialog.ShowDialog();
-            if (result == System.Windows.Forms.DialogResult.OK) DirectoryTextBox.Text = dialog.SelectedPath;
+            if (result == System.Windows.Forms.DialogResult.OK) {
+                DirectoryTextBox.Text = dialog.SelectedPath;
+            }
         }
 
-        private void ButtonAdd_OnClick(object sender, RoutedEventArgs e)
-        {
+        private void ButtonAdd_OnClick(object sender, RoutedEventArgs e) {
             var s = DirectoryTextBox.Text;
-            if (!Directory.Exists(s))
-            {
+            if (!Directory.Exists(s)) {
                 MessageBox.Show(_context.API.GetTranslation("wox_plugin_program_invalid_path"));
                 return;
             }
 
-            if (_editing == null)
-            {
-                var source = new Settings.ProgramSource
-                {
+            if (_editing == null) {
+                var source = new Settings.ProgramSource {
                     Location = DirectoryTextBox.Text,
                     Priority = Convert.ToInt32(PriorityTextBox.Text),
                     Deep = Convert.ToInt32(DeepTextBox.Text)
                 };
                 _settings.ProgramSources.Add(source);
-            }
-            else
-            {
+            } else {
                 _editing.Location = DirectoryTextBox.Text;
                 _editing.Priority = Convert.ToInt32(PriorityTextBox.Text);
                 _editing.Deep = Convert.ToInt32(DeepTextBox.Text);

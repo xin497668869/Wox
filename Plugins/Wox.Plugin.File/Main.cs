@@ -85,13 +85,16 @@ namespace Wox.Plugin.Program {
                     var minTime = int.MaxValue;
                     string fileName = null;
 
-                    foreach (var keyValuePair in _settings.HistorySourcesMap)
+                    foreach (var keyValuePair in _settings.HistorySourcesMap) {
                         if (keyValuePair.Value < minTime) {
                             minTime = keyValuePair.Value;
                             fileName = keyValuePair.Key;
                         }
+                    }
 
-                    if (fileName != null) _settings.HistorySourcesMap.Remove(fileName);
+                    if (fileName != null) {
+                        _settings.HistorySourcesMap.Remove(fileName);
+                    }
                 }
             } catch (Exception) {
                 var name = "Plugin: Program";

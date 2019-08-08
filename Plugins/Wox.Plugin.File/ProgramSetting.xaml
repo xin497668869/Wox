@@ -16,15 +16,15 @@
                     <RowDefinition Height="50" />
                 </Grid.RowDefinitions>
                 <ListView x:Name="programSourceView" Grid.Row="1" AllowDrop="True"
-                  DragEnter="programSourceView_DragEnter"
-                  Drop="programSourceView_Drop">
+                          DragEnter="programSourceView_DragEnter"
+                          Drop="programSourceView_Drop">
                     <ListView.View>
                         <GridView>
                             <GridViewColumn Header="{DynamicResource wox_plugin_program_location}" Width="490">
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock
-                                    Text="{Binding Location, ConverterParameter=(null), Converter={program:LocationConverter}}" />
+                                            Text="{Binding Location, ConverterParameter=(null), Converter={program:LocationConverter}}" />
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
@@ -32,7 +32,7 @@
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock
-                                    Text="{Binding Priority}" />
+                                            Text="{Binding Priority}" />
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
@@ -40,7 +40,7 @@
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock
-                                    Text="{Binding Deep}" />
+                                            Text="{Binding Deep}" />
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
@@ -50,11 +50,11 @@
                 <DockPanel Grid.Row="2">
                     <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
                         <Button Click="btnDeleteProgramSource_OnClick" Width="80" Margin="10"
-                        Content="{DynamicResource wox_plugin_program_delete}" />
+                                Content="{DynamicResource wox_plugin_program_delete}" />
                         <Button Click="btnEditProgramSource_OnClick" Width="80" Margin="10"
-                        Content="{DynamicResource wox_plugin_program_edit}" />
+                                Content="{DynamicResource wox_plugin_program_edit}" />
                         <Button Click="btnAddProgramSource_OnClick" Width="80" Margin="10"
-                        Content="{DynamicResource wox_plugin_program_add}" />
+                                Content="{DynamicResource wox_plugin_program_add}" />
                     </StackPanel>
                 </DockPanel>
             </Grid>
@@ -69,15 +69,15 @@
                     <RowDefinition Height="50" />
                 </Grid.RowDefinitions>
                 <ListView x:Name="programHistoryView" Grid.Row="1" AllowDrop="True"
-                  DragEnter="programSourceView_DragEnter"
-                  Drop="programSourceView_Drop">
+                          DragEnter="programSourceView_DragEnter"
+                          Drop="programSourceView_Drop">
                     <ListView.View>
                         <GridView>
                             <GridViewColumn Header="{DynamicResource wox_plugin_program_location}" Width="570">
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock
-                                    Text="{Binding}" />
+                                            Text="{Binding}" />
                                     </DataTemplate>
                                 </GridViewColumn.CellTemplate>
                             </GridViewColumn>
@@ -87,7 +87,7 @@
                 <DockPanel Grid.Row="2">
                     <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
                         <Button Click="cleanHistoryClick" Width="100" Margin="10"
-                        Content="}" />
+                                Content="}" />
                     </StackPanel>
                 </DockPanel>
             </Grid>

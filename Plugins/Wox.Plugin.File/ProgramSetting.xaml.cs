@@ -54,7 +54,9 @@ namespace Wox.Plugin.Program {
             var selectedProgramSource = programSourceView.SelectedItem as Settings.ProgramSource;
             if (selectedProgramSource != null) {
                 var add = new AddProgramSource(selectedProgramSource, _settings);
-                if (add.ShowDialog() ?? false) ReIndexing();
+                if (add.ShowDialog() ?? false) {
+                    ReIndexing();
+                }
             } else {
                 var msg = context.API.GetTranslation("wox_plugin_program_pls_select_program_source");
                 MessageBox.Show(msg);
@@ -63,21 +65,25 @@ namespace Wox.Plugin.Program {
 
 
         private void programSourceView_DragEnter(object sender, DragEventArgs e) {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            if (e.Data.GetDataPresent(DataFormats.FileDrop)) {
                 e.Effects = DragDropEffects.Link;
-            else
+            } else {
                 e.Effects = DragDropEffects.None;
+            }
         }
 
         private void programSourceView_Drop(object sender, DragEventArgs e) {
             var files = (string[]) e.Data.GetData(DataFormats.FileDrop);
 
-            if (files != null && files.Length > 0)
-                foreach (var s in files)
-                    if (Directory.Exists(s))
+            if (files != null && files.Length > 0) {
+                foreach (var s in files) {
+                    if (Directory.Exists(s)) {
                         _settings.ProgramSources.Add(new Settings.ProgramSource {
                             Location = s
                         });
+                    }
+                }
+            }
         }
 
         private void cleanHistoryClick(object sender, RoutedEventArgs e) {
