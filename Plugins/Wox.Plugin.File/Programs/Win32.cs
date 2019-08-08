@@ -3,17 +3,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
-using Microsoft.Win32;
 using Wox.Infrastructure;
 using Wox.Infrastructure.Logger;
 using Stopwatch = System.Diagnostics.Stopwatch;
 
-namespace Wox.Plugin.Program.Programs
-{
-    [Serializable]
-    public class Win32 : IProgram
-    {
+namespace Wox.Plugin.Program.Programs {
+    [Serializable] public class Win32 : IProgram {
         public string Name { get; set; }
         public string IcoPath { get; set; }
         public string FullPath { get; set; }
@@ -23,18 +18,14 @@ namespace Wox.Plugin.Program.Programs
         public bool Valid { get; set; }
 
 
-        public Result Result(string query, IPublicAPI api)
-        {
-            var result = new Result
-            {
+        public Result Result(string query, IPublicAPI api) {
+            var result = new Result {
                 SubTitle = FullPath,
                 IcoPath = IcoPath,
                 Score = Score(query),
                 ContextData = this,
-                Action = e =>
-                {
-                    var info = new ProcessStartInfo
-                    {
+                Action = e => {
+                    var info = new ProcessStartInfo {
                         FileName = FullPath,
                         WorkingDirectory = ParentDirectory
                     };
@@ -55,27 +46,20 @@ namespace Wox.Plugin.Program.Programs
         }
 
 
-        public List<Result> ContextMenus(IPublicAPI api)
-        {
-            var contextMenus = new List<Result>
-            {
-                new Result
-                {
+        public List<Result> ContextMenus(IPublicAPI api) {
+            var contextMenus = new List<Result> {
+                new Result {
                     Title = api.GetTranslation("wox_plugin_program_open_containing_folder"),
-                    Action = _ =>
-                    {
+                    Action = _ => {
                         var hide = Main.StartProcess(new ProcessStartInfo(ParentDirectory));
                         return hide;
                     },
                     IcoPath = "Images/folder.png"
                 },
-                new Result
-                {
+                new Result {
                     Title = api.GetTranslation("wox_plugin_program_run_as_administrator"),
-                    Action = _ =>
-                    {
-                        var info = new ProcessStartInfo
-                        {
+                    Action = _ => {
+                        var info = new ProcessStartInfo {
                             FileName = FullPath,
                             WorkingDirectory = ParentDirectory,
                             Verb = "runas"
@@ -89,8 +73,7 @@ namespace Wox.Plugin.Program.Programs
             return contextMenus;
         }
 
-        private int Score(string query)
-        {
+        private int Score(string query) {
             var score1 = StringMatcher.Score(Name, query);
             var score2 = StringMatcher.ScoreForPinyin(Name, query);
             var score3 = StringMatcher.Score(Description, query);
@@ -101,15 +84,12 @@ namespace Wox.Plugin.Program.Programs
         }
 
 
-        public override string ToString()
-        {
+        public override string ToString() {
             return ExecutableName;
         }
 
-        private static Win32 Win32Program(string path)
-        {
-            var p = new Win32
-            {
+        private static Win32 Win32Program(string path) {
+            var p = new Win32 {
                 Name = Path.GetFileNameWithoutExtension(path),
                 IcoPath = path,
                 FullPath = path,
@@ -120,11 +100,9 @@ namespace Wox.Plugin.Program.Programs
             return p;
         }
 
-        private static Win32 PathToWin32(FilterScoreItem item)
-        {
+        private static Win32 PathToWin32(FilterScoreItem item) {
             var path = item.Path;
-            return new Win32
-            {
+            return new Win32 {
                 Name = Path.GetFileNameWithoutExtension(path),
                 IcoPath = path,
                 FullPath = path,
@@ -134,8 +112,7 @@ namespace Wox.Plugin.Program.Programs
             };
         }
 
-        private static Win32 ExeProgram(string path)
-        {
+        private static Win32 ExeProgram(string path) {
             var program = Win32Program(path);
             var info = FileVersionInfo.GetVersionInfo(path);
             if (!string.IsNullOrEmpty(info.FileDescription)) program.Description = info.FileDescription;
@@ -143,8 +120,7 @@ namespace Wox.Plugin.Program.Programs
             return program;
         }
 
-        private static IEnumerable<string> ProgramPaths()
-        {
+        private static IEnumerable<string> ProgramPaths() {
             var directory = Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms);
             if (!Directory.Exists(directory))
                 return new string[] { };
@@ -154,33 +130,28 @@ namespace Wox.Plugin.Program.Programs
         }
 
 
-        private static string Extension(string path)
-        {
+        private static string Extension(string path) {
             var extension = Path.GetExtension(path)?.ToLower();
             if (!string.IsNullOrEmpty(extension))
                 return extension.Substring(1);
             return string.Empty;
         }
 
-        private static List<string> SearchCustomPathPrograms(Settings settings)
-        {
+        private static List<string> SearchCustomPathPrograms(Settings settings) {
             var sources = settings.ProgramSources;
             var allSearchFile = new List<string>();
             var folderQueue = new Queue<Settings.ProgramSource>();
             var sortSources = sources.OrderByDescending(p => p.Priority);
 
-            foreach (var programSource in sortSources)
-            {
+            foreach (var programSource in sortSources) {
                 folderQueue.Enqueue(new Settings.ProgramSource(programSource.Location,
                     programSource.Priority,
                     1));
 
-                while (folderQueue.Any())
-                {
+                while (folderQueue.Any()) {
                     var parentDir = folderQueue.Dequeue();
                     allSearchFile.Add(parentDir.Location);
-                    if (parentDir.Deep > programSource.Deep)
-                    {
+                    if (parentDir.Deep > programSource.Deep) {
                         allSearchFile.AddRange(folderQueue.Select(p => p.Location).ToList());
                         folderQueue.Clear();
                         break;
@@ -203,8 +174,7 @@ namespace Wox.Plugin.Program.Programs
         }
 
 
-        public static List<Win32> SearchPrograms(string searchText, Settings settings)
-        {
+        public static List<Win32> SearchPrograms(string searchText, Settings settings) {
             var sw = new Stopwatch();
             sw.Start();
 
@@ -217,18 +187,22 @@ namespace Wox.Plugin.Program.Programs
             customPathPrograms.AddRange(systemPathPrograms);
 
             var programs = customPathPrograms.AsParallel().Distinct()
-                .Select(p =>
-                {
+                .Select(p => {
                     var pathAnalysis = new PathAnalysis(p);
 
                     pathAnalysis.init();
-                    try
-                    {
-                        var score = PathAnalysis.isMatch(pathAnalysis, searchText, 0, 0);
-                        return new FilterScoreItem(p, score ? 1000 - pathAnalysis.pinYinName.Length : 0);
-                    }
-                    catch (Exception e)
-                    {
+                    try {
+                        var isMatch = PathAnalysis.isMatch(pathAnalysis, searchText, 0, 0);
+                        if (isMatch) {
+                            int score;
+                            if (settings.HistorySourcesMap.TryGetValue(p, out score))
+                                return new FilterScoreItem(p, score);
+
+                            return new FilterScoreItem(p, 1000 - pathAnalysis.pinYinName.Length);
+                        }
+
+                        return new FilterScoreItem(p, 0);
+                    } catch (Exception e) {
                         Log.Error("" + e);
                     }
 
@@ -244,46 +218,6 @@ namespace Wox.Plugin.Program.Programs
 //            var programs = programs1.Concat(programs2).Where(p => p.Valid);
             var searchStartMenuPrograms = programs.Select(PathToWin32).ToList();
             return searchStartMenuPrograms;
-        }
-
-
-        private static IEnumerable<Win32> ProgramsFromRegistryKey(RegistryKey root)
-        {
-            var programs = root.GetSubKeyNames()
-                .Select(subkey => ProgramFromRegistrySubkey(root, subkey))
-                .Where(p => !string.IsNullOrEmpty(p.Name));
-            return programs;
-        }
-
-        private static Win32 ProgramFromRegistrySubkey(RegistryKey root, string subkey)
-        {
-            using (var key = root.OpenSubKey(subkey))
-            {
-                if (key != null)
-                {
-                    var defaultValue = string.Empty;
-                    var path = key.GetValue(defaultValue) as string;
-                    if (!string.IsNullOrEmpty(path))
-                    {
-                        // fix path like this: ""\"C:\\folder\\executable.exe\""
-                        path = path.Trim('"', ' ');
-                        path = Environment.ExpandEnvironmentVariables(path);
-
-                        if (File.Exists(path))
-                        {
-                            var entry = Win32Program(path);
-                            entry.ExecutableName = subkey;
-                            return entry;
-                        }
-
-                        return new Win32();
-                    }
-
-                    return new Win32();
-                }
-
-                return new Win32();
-            }
         }
     }
 }
