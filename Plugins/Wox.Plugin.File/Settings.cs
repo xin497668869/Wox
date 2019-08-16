@@ -3,7 +3,6 @@
 namespace Wox.Plugin.Program {
     public class Settings {
         public List<ProgramSource> ProgramSources { get; set; } = new List<ProgramSource>();
-        public Dictionary<string, int> HistorySourcesMap { get; set; } = new Dictionary<string, int>();
 
         public class ProgramSource {
             public ProgramSource() {

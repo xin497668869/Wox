@@ -7,44 +7,44 @@ using System.Windows.Data;
 using Wox.Infrastructure.UserSettings;
 using Wox.Plugin;
 
-namespace Wox.ViewModel
-{
-    public class ResultsViewModel : BaseModel
-    {
-        public class ResultCollection : ObservableCollection<ResultViewModel>
-        {
-            public void RemoveAll(Predicate<ResultViewModel> predicate)
-            {
+namespace Wox.ViewModel {
+    public class ResultsViewModel : BaseModel {
+        public class ResultCollection : ObservableCollection<ResultViewModel> {
+            public void RemoveAll(Predicate<ResultViewModel> predicate) {
                 CheckReentrancy();
 
-                for (var i = Count - 1; i >= 0; i--)
-                    if (predicate(this[i]))
+                for (int i = Count - 1; i >= 0; i--) {
+                    if (predicate(this[i])) {
                         RemoveAt(i);
+                    }
+                }
             }
 
-            public void Update(List<ResultViewModel> newItems)
-            {
-                var newCount = newItems.Count;
-                var oldCount = Items.Count;
-                var location = newCount > oldCount ? oldCount : newCount;
+            public void Update(List<ResultViewModel> newItems) {
+                int newCount = newItems.Count;
+                int oldCount = Items.Count;
+                int location = newCount > oldCount ? oldCount : newCount;
 
-                for (var i = 0; i < location; i++)
-                {
-                    var oldResult = this[i];
-                    var newResult = newItems[i];
-                    if (!oldResult.Equals(newResult))
+                for (int i = 0; i < location; i++) {
+                    ResultViewModel oldResult = this[i];
+                    ResultViewModel newResult = newItems[i];
+                    if (!oldResult.Equals(newResult)) {
                         this[i] = newResult;
-                    else if (oldResult.Result.Score != newResult.Result.Score)
+                    } else if (oldResult.Result.Score != newResult.Result.Score) {
                         this[i].Result.Score = newResult.Result.Score;
+                    }
                 }
 
 
-                if (newCount >= oldCount)
-                    for (var i = oldCount; i < newCount; i++)
+                if (newCount >= oldCount) {
+                    for (int i = oldCount; i < newCount; i++) {
                         Add(newItems[i]);
-                else
-                    for (var i = oldCount - 1; i >= newCount; i--)
+                    }
+                } else {
+                    for (int i = oldCount - 1; i >= newCount; i--) {
                         RemoveAt(i);
+                    }
+                }
             }
         }
 
@@ -57,18 +57,17 @@ namespace Wox.ViewModel
         private readonly Settings _settings;
         private int MaxResults => _settings?.MaxResultsToShow ?? 6;
 
-        public ResultsViewModel()
-        {
+        public ResultsViewModel() {
             Results = new ResultCollection();
             BindingOperations.EnableCollectionSynchronization(Results, _collectionLock);
         }
 
-        public ResultsViewModel(Settings settings) : this()
-        {
+        public ResultsViewModel(Settings settings) : this() {
             _settings = settings;
-            _settings.PropertyChanged += (s, e) =>
-            {
-                if (e.PropertyName == nameof(_settings.MaxResultsToShow)) OnPropertyChanged(nameof(MaxHeight));
+            _settings.PropertyChanged += (s, e) => {
+                if (e.PropertyName == nameof(_settings.MaxResultsToShow)) {
+                    OnPropertyChanged(nameof(MaxHeight));
+                }
             };
         }
 
@@ -88,23 +87,21 @@ namespace Wox.ViewModel
 
         #region Private Methods
 
-        private int InsertIndexOf(int newScore, IList<ResultViewModel> list)
-        {
-            var index = 0;
-            for (; index < list.Count; index++)
-            {
-                var result = list[index];
-                if (newScore > result.Result.Score) break;
+        private int InsertIndexOf(int newScore, IList<ResultViewModel> list) {
+            int index = 0;
+            for (; index < list.Count; index++) {
+                ResultViewModel result = list[index];
+                if (newScore > result.Result.Score) {
+                    break;
+                }
             }
 
             return index;
         }
 
-        private int NewIndex(int i)
-        {
-            var n = Results.Count;
-            if (n > 0)
-            {
+        private int NewIndex(int i) {
+            int n = Results.Count;
+            if (n > 0) {
                 i = (n + i) % n;
                 return i;
             }
@@ -117,107 +114,55 @@ namespace Wox.ViewModel
 
         #region Public Methods
 
-        public void SelectNextResult()
-        {
+        public void SelectNextResult() {
             SelectedIndex = NewIndex(SelectedIndex + 1);
         }
 
-        public void SelectPrevResult()
-        {
+        public void SelectPrevResult() {
             SelectedIndex = NewIndex(SelectedIndex - 1);
         }
 
-        public void SelectNextPage()
-        {
+        public void SelectNextPage() {
             SelectedIndex = NewIndex(SelectedIndex + MaxResults);
         }
 
-        public void SelectPrevPage()
-        {
+        public void SelectPrevPage() {
             SelectedIndex = NewIndex(SelectedIndex - MaxResults);
         }
 
-        public void Clear()
-        {
+        public void Clear() {
             Results.Clear();
         }
 
-        public void RemoveResultsExcept(PluginMetadata metadata)
-        {
+        public void RemoveResultsExcept(PluginMetadata metadata) {
             Results.RemoveAll(r => r.Result.PluginID != metadata.ID);
         }
 
-        public void RemoveResultsFor(PluginMetadata metadata)
-        {
+        public void RemoveResultsFor(PluginMetadata metadata) {
             Results.RemoveAll(r => r.Result.PluginID == metadata.ID);
         }
 
         /// <summary>
         ///     To avoid deadlock, this method should not called from main thread
         /// </summary>
-        public void AddResults(List<Result> newRawResults, string resultId)
-        {
-            lock (_addResultsLock)
-            {
-                var newResults = NewResults(newRawResults, resultId);
+        public void AddResults(List<Result> newRawResults, string resultId) {
+            lock (_addResultsLock) {
+                List<ResultViewModel> newResults = NewResults(newRawResults, resultId);
 
                 // update UI in one run, so it can avoid UI flickering
                 Results.Update(newResults);
 
-                if (Results.Count > 0)
-                {
+                if (Results.Count > 0) {
                     Margin = new Thickness {Top = 8};
                     SelectedIndex = 0;
-                }
-                else
-                {
+                } else {
                     Margin = new Thickness {Top = 0};
                 }
             }
         }
 
-        private List<ResultViewModel> NewResults(List<Result> newRawResults, string resultId)
-        {
-            var newResults = newRawResults.Select(r => new ResultViewModel(r)).ToList();
-            if (true)
-                return newResults;
-            var results = Results.ToList();
-            var oldResults = results.Where(r => r.Result.PluginID == resultId).ToList();
-
-            // intersection of A (old results) and B (new newResults)
-            var intersection = oldResults.Intersect(newResults).ToList();
-
-            // remove result of relative complement of B in A
-            foreach (var result in oldResults.Except(intersection)) results.Remove(result);
-
-            // update index for result in intersection of A and B
-            foreach (var commonResult in intersection)
-            {
-                var oldIndex = results.IndexOf(commonResult);
-                var oldScore = results[oldIndex].Result.Score;
-                var newResult = newResults[newResults.IndexOf(commonResult)];
-                var newScore = newResult.Result.Score;
-                if (newScore != oldScore)
-                {
-                    var oldResult = results[oldIndex];
-
-                    oldResult.Result.Score = newScore;
-                    oldResult.Result.OriginQuery = newResult.Result.OriginQuery;
-
-                    results.RemoveAt(oldIndex);
-                    var newIndex = InsertIndexOf(newScore, results);
-                    results.Insert(newIndex, oldResult);
-                }
-            }
-
-            // insert result in relative complement of A in B
-            foreach (var result in newResults.Except(intersection))
-            {
-                var newIndex = InsertIndexOf(result.Result.Score, results);
-                results.Insert(newIndex, result);
-            }
-
-            return results;
+        private List<ResultViewModel> NewResults(List<Result> newRawResults, string resultId) {
+            return newRawResults.Select(r => new ResultViewModel(r)).ToList();
         }
 
         #endregion

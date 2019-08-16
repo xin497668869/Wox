@@ -6,7 +6,7 @@ using System.Windows.Markup;
 namespace Wox.Plugin.Program {
     public class LocationConverter : MarkupExtension, IValueConverter {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture) {
-            var text = value as string;
+            string text = value as string;
             if (string.IsNullOrEmpty(text)) {
                 return string.Empty;
             }

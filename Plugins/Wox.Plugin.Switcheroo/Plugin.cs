@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Management;
 using System.Windows.Forms;
 using ManagedWinapi;
 using ManagedWinapi.Windows;
@@ -10,32 +8,24 @@ using Switcheroo;
 using Switcheroo.Core;
 using Wox.Infrastructure;
 using Wox.Infrastructure.Hotkey;
-using Wox.Infrastructure.Logger;
 using Wox.Infrastructure.Storage;
 using Control = System.Windows.Controls.Control;
-using Stopwatch = System.Diagnostics.Stopwatch;
 
-namespace Wox.Plugin.Switcheroo
-{
-    public class Plugin : IPlugin, ISettingProvider, IContextMenu
-    {
+namespace Wox.Plugin.Switcheroo {
+    public class Plugin : IPlugin, ISettingProvider, IContextMenu {
         private bool _altTabHooked;
         private SwitcherooSettings _settings;
         private PluginJsonStorage<SwitcherooSettings> _storage;
         private IntPtr _woxWindowHandle;
         protected PluginInitContext Context;
 
-        public List<Result> LoadContextMenus(Result selectedResult)
-        {
-            var app = (AppWindow) selectedResult.ContextData;
-            return new List<Result>
-            {
-                new Result
-                {
+        public List<Result> LoadContextMenus(Result selectedResult) {
+            AppWindow app = (AppWindow) selectedResult.ContextData;
+            return new List<Result> {
+                new Result {
                     Title = "Close " + app.Title,
                     IcoPath = app.ExecutablePath,
-                    Action = e =>
-                    {
+                    Action = e => {
                         Context.API.ChangeQuery(Context.CurrentPluginMetadata.ActionKeyword + " ", true);
                         app.PostClose();
                         return true;
@@ -44,29 +34,22 @@ namespace Wox.Plugin.Switcheroo
             };
         }
 
-        public void Init(PluginInitContext context)
-        {
+        public void Init(PluginInitContext context) {
             Context = context;
             _storage = new PluginJsonStorage<SwitcherooSettings>();
             _settings = _storage.Load();
             context.API.GlobalKeyboardEvent += API_GlobalKeyboardEvent;
         }
 
-        public List<Result> Query(Query query)
-        {
+        public List<Result> Query(Query query, Dictionary<string, int> historyHistorySources) {
+            string queryString = query.Search;
 
-            var queryString = query.Search;
-
-            var windowContext = new WindowFilterContext<AppWindowViewModel>
-            {
+            WindowFilterContext<AppWindowViewModel> windowContext = new WindowFilterContext<AppWindowViewModel> {
                 Windows = new WindowFinder().GetWindows().Select(w => new AppWindowViewModel(w)),
                 ForegroundWindowProcessTitle = new AppWindow(SystemWindow.ForegroundWindow.HWnd).ProcessTitle
             };
-            var filterResults = windowContext.Windows
-                .Where(r =>
-                {
-                    return PathAnalysis.isMatch(r.ProcessTitle+" "+r.WindowTitle, queryString);
-                })
+            List<AppWindowViewModel> filterResults = windowContext.Windows
+                .Where(r => { return XinFuzzyMatcher.isMatch(r.ProcessTitle + " " + r.WindowTitle, queryString); })
                 .OrderByDescending(r => -r.ProcessTitle.Length)
                 .ToList();
 
@@ -76,16 +59,13 @@ namespace Wox.Plugin.Switcheroo
 //                    .ToList();
 
 
-            var results = filterResults.Select(o =>
-            {
-                var result = new Result
-                {
+            List<Result> results = filterResults.Select(o => {
+                Result result = new Result {
                     Title = o.ProcessTitle,
                     SubTitle = o.WindowTitle,
                     IcoPath = o.AppWindow.ExecutablePath,
                     ContextData = o,
-                    Action = con =>
-                    {
+                    Action = con => {
                         o.AppWindow.SwitchTo();
                         Context.API.HideApp();
                         return true;
@@ -97,41 +77,37 @@ namespace Wox.Plugin.Switcheroo
             return results;
         }
 
-        public Control CreateSettingPanel()
-        {
+        public Control CreateSettingPanel() {
             return new SwitcherooSetting(_settings, _storage);
         }
 
-        private void ActivateWindow()
-        {
-            var altKey = new KeyboardKey(Keys.Alt);
-            var altKeyPressed = false;
+        private void ActivateWindow() {
+            KeyboardKey altKey = new KeyboardKey(Keys.Alt);
+            bool altKeyPressed = false;
 
-            if ((altKey.AsyncState & 0x8000) == 0)
-            {
+            if ((altKey.AsyncState & 0x8000) == 0) {
                 altKey.Press();
                 altKeyPressed = true;
             }
 
             Context.API.ShowApp();
 
-            if (altKeyPressed)
-            {
+            if (altKeyPressed) {
                 altKey.Release();
             }
         }
 
-        private bool API_GlobalKeyboardEvent(int keyevent, int vkcode, SpecialKeyState state)
-        {
-            if (!_settings.OverrideAltTab) return true;
-            if (keyevent == (int) KeyEvent.WM_SYSKEYDOWN && vkcode == (int) Keys.Tab && state.AltPressed)
-            {
+        private bool API_GlobalKeyboardEvent(int keyevent, int vkcode, SpecialKeyState state) {
+            if (!_settings.OverrideAltTab) {
+                return true;
+            }
+
+            if (keyevent == (int) KeyEvent.WM_SYSKEYDOWN && vkcode == (int) Keys.Tab && state.AltPressed) {
                 OnAltTabPressed();
                 return false;
             }
 
-            if (keyevent == (int) KeyEvent.WM_SYSKEYUP && vkcode == (int) Keys.Tab)
-            {
+            if (keyevent == (int) KeyEvent.WM_SYSKEYUP && vkcode == (int) Keys.Tab) {
                 //prevent system alt+tab action
                 return false;
             }
@@ -139,23 +115,25 @@ namespace Wox.Plugin.Switcheroo
             return true;
         }
 
-        private void OnAltTabPressed()
-        {
+        private void OnAltTabPressed() {
             Context.API.ChangeQuery(" ", true);
             Context.API.ChangeQuery(Context.CurrentPluginMetadata.ActionKeyword + " ", true);
             ActivateWindow();
         }
 
-        private string GetNormalTitleOrAppFirst(string title)
-        {
-            if (!_settings.ApplicationNameFirst)
+        private string GetNormalTitleOrAppFirst(string title) {
+            if (!_settings.ApplicationNameFirst) {
                 return title;
-            var lastIndexOfDash = title.LastIndexOf('-');
-            if (lastIndexOfDash == -1)
+            }
+
+            int lastIndexOfDash = title.LastIndexOf('-');
+            if (lastIndexOfDash == -1) {
                 return title;
-            var appName = title.Substring(lastIndexOfDash + 2);
-            var restOfTitle = title.Substring(0, title.LastIndexOf('-'));
-            return String.Format("{0} - {1}", appName, restOfTitle);
+            }
+
+            string appName = title.Substring(lastIndexOfDash + 2);
+            string restOfTitle = title.Substring(0, title.LastIndexOf('-'));
+            return string.Format("{0} - {1}", appName, restOfTitle);
         }
     }
 }

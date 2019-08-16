@@ -5,32 +5,31 @@ using System.IO;
 using System.Linq;
 using Wox.Infrastructure;
 using Wox.Infrastructure.Logger;
-using Stopwatch = System.Diagnostics.Stopwatch;
 
 namespace Wox.Plugin.Program.Programs {
     [Serializable]
     public class Win32 : IProgram {
         public string Name { get; set; }
-        public string IcoPath { get; set; }
+        private string IcoPath { get; set; }
         public string FullPath { get; set; }
-        public string ParentDirectory { get; set; }
-        public string ExecutableName { get; set; }
-        public string Description { get; set; }
-        public bool Valid { get; set; }
+        private string ParentDirectory { get; set; }
+        private string ExecutableName { get; set; }
+        private string Description { get; set; }
+        private bool Valid { get; set; }
 
 
         public Result Result(string query, IPublicAPI api) {
-            var result = new Result {
+            Result result = new Result {
                 SubTitle = FullPath,
                 IcoPath = IcoPath,
                 Score = Score(query),
                 ContextData = this,
                 Action = e => {
-                    var info = new ProcessStartInfo {
+                    ProcessStartInfo info = new ProcessStartInfo {
                         FileName = FullPath,
                         WorkingDirectory = ParentDirectory
                     };
-                    var hide = Main.StartProcess(info);
+                    bool hide = Main.StartProcess(info);
                     return hide;
                 }
             };
@@ -49,11 +48,11 @@ namespace Wox.Plugin.Program.Programs {
 
 
         public List<Result> ContextMenus(IPublicAPI api) {
-            var contextMenus = new List<Result> {
+            List<Result> contextMenus = new List<Result> {
                 new Result {
                     Title = api.GetTranslation("wox_plugin_program_open_containing_folder"),
                     Action = _ => {
-                        var hide = Main.StartProcess(new ProcessStartInfo(ParentDirectory));
+                        bool hide = Main.StartProcess(new ProcessStartInfo(ParentDirectory));
                         return hide;
                     },
                     IcoPath = "Images/folder.png"
@@ -61,12 +60,12 @@ namespace Wox.Plugin.Program.Programs {
                 new Result {
                     Title = api.GetTranslation("wox_plugin_program_run_as_administrator"),
                     Action = _ => {
-                        var info = new ProcessStartInfo {
+                        ProcessStartInfo info = new ProcessStartInfo {
                             FileName = FullPath,
                             WorkingDirectory = ParentDirectory,
                             Verb = "runas"
                         };
-                        var hide = Main.StartProcess(info);
+                        bool hide = Main.StartProcess(info);
                         return hide;
                     },
                     IcoPath = "Images/cmd.png"
@@ -76,12 +75,12 @@ namespace Wox.Plugin.Program.Programs {
         }
 
         private int Score(string query) {
-            var score1 = StringMatcher.Score(Name, query);
-            var score2 = StringMatcher.ScoreForPinyin(Name, query);
-            var score3 = StringMatcher.Score(Description, query);
-            var score4 = StringMatcher.ScoreForPinyin(Description, query);
-            var score5 = StringMatcher.Score(ExecutableName, query);
-            var score = new[] {score1, score2, score3, score4, score5}.Max();
+            int score1 = StringMatcher.Score(Name, query);
+            int score2 = StringMatcher.ScoreForPinyin(Name, query);
+            int score3 = StringMatcher.Score(Description, query);
+            int score4 = StringMatcher.ScoreForPinyin(Description, query);
+            int score5 = StringMatcher.Score(ExecutableName, query);
+            int score = new[] {score1, score2, score3, score4, score5}.Max();
             return score;
         }
 
@@ -90,20 +89,9 @@ namespace Wox.Plugin.Program.Programs {
             return ExecutableName;
         }
 
-        private static Win32 Win32Program(string path) {
-            var p = new Win32 {
-                Name = Path.GetFileNameWithoutExtension(path),
-                IcoPath = path,
-                FullPath = path,
-                ParentDirectory = Directory.GetParent(path).FullName,
-                Description = string.Empty,
-                Valid = true
-            };
-            return p;
-        }
 
         private static Win32 PathToWin32(FilterScoreItem item) {
-            var path = item.Path;
+            string path = item.Path;
             return new Win32 {
                 Name = Path.GetFileNameWithoutExtension(path),
                 IcoPath = path,
@@ -114,65 +102,57 @@ namespace Wox.Plugin.Program.Programs {
             };
         }
 
-        private static Win32 ExeProgram(string path) {
-            var program = Win32Program(path);
-            var info = FileVersionInfo.GetVersionInfo(path);
-            if (!string.IsNullOrEmpty(info.FileDescription)) {
-                program.Description = info.FileDescription;
-            }
 
-            return program;
-        }
+        private static List<Settings.ProgramSource> ProgramPaths() {
+            List<Settings.ProgramSource> programSources = new List<Settings.ProgramSource>();
+            programSources.Add(new Settings.ProgramSource(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms),
+                0,
+                5));
 
-        private static IEnumerable<string> ProgramPaths() {
-            var directory = Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms);
-            if (!Directory.Exists(directory)) {
-                return new string[] { };
-            }
 
-            return Directory.EnumerateFiles(directory, "*",
-                SearchOption.AllDirectories);
+            programSources.Add(new Settings.ProgramSource(Environment.GetFolderPath(Environment.SpecialFolder.Programs),
+                0,
+                5));
+            return programSources;
         }
 
 
-        private static string Extension(string path) {
-            var extension = Path.GetExtension(path)?.ToLower();
-            if (!string.IsNullOrEmpty(extension)) {
-                return extension.Substring(1);
-            }
+        private static List<string> SearchCustomPathPrograms(List<Settings.ProgramSource> programSources,
+            bool containDir) {
+            List<string> allSearchFile = new List<string>();
+            Queue<Settings.ProgramSource> folderQueue = new Queue<Settings.ProgramSource>();
+            IOrderedEnumerable<Settings.ProgramSource> sortSources = programSources.OrderByDescending(p => p.Priority);
 
-            return string.Empty;
-        }
-
-        private static List<string> SearchCustomPathPrograms(Settings settings) {
-            var sources = settings.ProgramSources;
-            var allSearchFile = new List<string>();
-            var folderQueue = new Queue<Settings.ProgramSource>();
-            var sortSources = sources.OrderByDescending(p => p.Priority);
-
-            foreach (var programSource in sortSources) {
+            foreach (Settings.ProgramSource programSource in sortSources) {
                 folderQueue.Enqueue(new Settings.ProgramSource(programSource.Location,
                     programSource.Priority,
                     1));
 
                 while (folderQueue.Any()) {
-                    var parentDir = folderQueue.Dequeue();
-                    allSearchFile.Add(parentDir.Location);
-                    if (parentDir.Deep > programSource.Deep) {
-                        allSearchFile.AddRange(folderQueue.Select(p => p.Location).ToList());
-                        folderQueue.Clear();
-                        break;
+                    Settings.ProgramSource parentDir = folderQueue.Dequeue();
+                    if (containDir) {
+                        allSearchFile.Add(parentDir.Location);
                     }
 
-                    var enumerateFiles = Directory.EnumerateFiles(programSource.Location,
+                    if (parentDir.Deep > programSource.Deep) {
+                        if (containDir) {
+                            allSearchFile.AddRange(folderQueue.Select(p => p.Location).ToList());
+                        }
+
+                        folderQueue.Clear();
+                    }
+
+                    IEnumerable<string> enumerateFiles = Directory.EnumerateFiles(parentDir.Location,
                         "*",
                         SearchOption.TopDirectoryOnly);
+
                     allSearchFile.AddRange(enumerateFiles);
 
-                    foreach (var directory in Directory.GetDirectories(programSource.Location)) {
+                    foreach (string directory in Directory.GetDirectories(parentDir.Location)) {
                         folderQueue.Enqueue(new Settings.ProgramSource(directory,
                             parentDir.Priority,
-                            programSource.Deep + 1));
+                            parentDir.Deep + 1));
                     }
                 }
             }
@@ -182,35 +162,31 @@ namespace Wox.Plugin.Program.Programs {
         }
 
 
-        public static List<Win32> SearchPrograms(string searchText, Settings settings) {
-            var sw = new Stopwatch();
-            sw.Start();
-
+        public static IEnumerable<Win32> SearchPrograms(Query search, Settings settings,
+            Dictionary<string, int> historyHistorySources) {
             //搜索自定义目录菜单
-            var customPathPrograms = SearchCustomPathPrograms(settings);
-
+            List<string> searchPathPrograms = SearchCustomPathPrograms(settings.ProgramSources, true);
             //搜索开始菜单
-            var systemPathPrograms = ProgramPaths();
+            IEnumerable<string> systemPathPrograms = SearchCustomPathPrograms(ProgramPaths(), false);
 
-            customPathPrograms.AddRange(systemPathPrograms);
+            searchPathPrograms.AddRange(systemPathPrograms);
 
-            var programs = customPathPrograms.AsParallel().Distinct()
+            List<FilterScoreItem> programs = searchPathPrograms.AsParallel().Distinct()
                 .Select(p => {
-                    var pathAnalysis = new PathAnalysis(p);
+                    XinFuzzyMatcher xinFuzzyMatcher = new XinFuzzyMatcher(Path.GetFileNameWithoutExtension(p));
 
-                    pathAnalysis.init();
+                    xinFuzzyMatcher.init();
                     try {
-                        var isMatch = PathAnalysis.isMatch(pathAnalysis, searchText, 0, 0);
-                        if (isMatch) {
-                            int score;
-                            if (settings.HistorySourcesMap.TryGetValue(p, out score)) {
-                                return new FilterScoreItem(p, score);
-                            }
-
-                            return new FilterScoreItem(p, 1000 - pathAnalysis.pinYinName.Length);
+                        bool isMatch = XinFuzzyMatcher.isMatch(xinFuzzyMatcher, search.Search, 0, 0);
+                        if (!isMatch) {
+                            return new FilterScoreItem(p, 0);
                         }
 
-                        return new FilterScoreItem(p, 0);
+                        if (historyHistorySources != null && historyHistorySources.TryGetValue(p, out int score)) {
+                            return new FilterScoreItem(p, score);
+                        }
+
+                        return new FilterScoreItem(p, 1000 - xinFuzzyMatcher.pinYinName.Length);
                     } catch (Exception e) {
                         Log.Error("" + e);
                     }
@@ -226,8 +202,7 @@ namespace Wox.Plugin.Program.Programs {
             }
 
 
-//            var programs = programs1.Concat(programs2).Where(p => p.Valid);
-            var searchStartMenuPrograms = programs.Select(PathToWin32).ToList();
+            List<Win32> searchStartMenuPrograms = programs.Select(PathToWin32).ToList();
             return searchStartMenuPrograms;
         }
     }

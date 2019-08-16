@@ -7,75 +7,56 @@ using System.Windows;
 using System.Windows.Controls;
 using Wox.Infrastructure.Storage;
 
-namespace Wox.Plugin.Folder
-{
-    public class Main : IPlugin, ISettingProvider, IPluginI18n, ISavable
-    {
+namespace Wox.Plugin.Folder {
+    public class Main : IPlugin, ISettingProvider, IPluginI18n, ISavable {
         private static List<string> _driverNames;
-        private PluginInitContext _context;
 
         private readonly Settings _settings;
         private readonly PluginJsonStorage<Settings> _storage;
+        private PluginInitContext _context;
 
-        public Main()
-        {
+        public Main() {
             _storage = new PluginJsonStorage<Settings>();
             _settings = _storage.Load();
             InitialDriverList();
         }
 
-        public void Save()
-        {
-            _storage.Save();
-        }
-
-        public Control CreateSettingPanel()
-        {
-            return new FileSystemSettings(_context.API, _settings);
-        }
-
-        public void Init(PluginInitContext context)
-        {
+        public void Init(PluginInitContext context) {
             _context = context;
-            
         }
 
-        public List<Result> Query(Query query)
-        {
+        public List<Result> Query(Query query, Dictionary<string, int> historyHistorySources) {
             string search = query.Search.ToLower();
 
             List<FolderLink> userFolderLinks = _settings.FolderLinks.Where(
                 x => x.Nickname.StartsWith(search, StringComparison.OrdinalIgnoreCase)).ToList();
             List<Result> results =
                 userFolderLinks.Select(
-                    item => new Result()
-                    {
+                    item => new Result {
                         Title = item.Nickname,
                         IcoPath = item.Path,
                         SubTitle = "Ctrl + Enter to open the directory",
-                        Action = c =>
-                        {
-                            if (c.SpecialKeyState.CtrlPressed)
-                            {
-                                try
-                                {
+                        Action = c => {
+                            if (c.SpecialKeyState.CtrlPressed) {
+                                try {
                                     Process.Start(item.Path);
                                     return true;
-                                }
-                                catch (Exception ex)
-                                {
+                                } catch (Exception ex) {
                                     MessageBox.Show(ex.Message, "Could not start " + item.Path);
                                     return false;
                                 }
                             }
-                            _context.API.ChangeQuery($"{query.ActionKeyword} {item.Path}{(item.Path.EndsWith("\\") ? "" : "\\")}");
+
+                            _context.API.ChangeQuery(
+                                $"{query.ActionKeyword} {item.Path}{(item.Path.EndsWith("\\") ? "" : "\\")}");
                             return false;
                         },
-                        ContextData = item,
+                        ContextData = item
                     }).ToList();
 
-            if (_driverNames != null && !_driverNames.Any(search.StartsWith))
+            if (_driverNames != null && !_driverNames.Any(search.StartsWith)) {
                 return results;
+            }
 
             //if (!input.EndsWith("\\"))
             //{
@@ -85,64 +66,74 @@ namespace Wox.Plugin.Folder
             results.AddRange(QueryInternal_Directory_Exists(query));
 
             // todo temp hack for scores
-            foreach (var result in results)
-            {
+            foreach (Result result in results) {
                 result.Score += 10;
             }
 
             return results;
         }
-        private void InitialDriverList()
-        {
-            if (_driverNames == null)
-            {
+
+        public string GetTranslatedPluginTitle() {
+            return _context.API.GetTranslation("wox_plugin_folder_plugin_name");
+        }
+
+        public string GetTranslatedPluginDescription() {
+            return _context.API.GetTranslation("wox_plugin_folder_plugin_description");
+        }
+
+        public void Save() {
+            _storage.Save();
+        }
+
+        public Control CreateSettingPanel() {
+            return new FileSystemSettings(_context.API, _settings);
+        }
+
+        private void InitialDriverList() {
+            if (_driverNames == null) {
                 _driverNames = new List<string>();
                 DriveInfo[] allDrives = DriveInfo.GetDrives();
-                foreach (DriveInfo driver in allDrives)
-                {
+                foreach (DriveInfo driver in allDrives) {
                     _driverNames.Add(driver.Name.ToLower().TrimEnd('\\'));
                 }
             }
         }
 
-        private List<Result> QueryInternal_Directory_Exists(Query query)
-        {
-            var search = query.Search.ToLower();
-            var results = new List<Result>();
+        private List<Result> QueryInternal_Directory_Exists(Query query) {
+            string search = query.Search.ToLower();
+            List<Result> results = new List<Result>();
 
             string incompleteName = "";
-            if (!Directory.Exists(search + "\\"))
-            {
+            if (!Directory.Exists(search + "\\")) {
                 //if the last component of the path is incomplete,
                 //then make auto complete for it.
                 int index = search.LastIndexOf('\\');
-                if (index > 0 && index < (search.Length - 1))
-                {
+                if (index > 0 && index < search.Length - 1) {
                     incompleteName = search.Substring(index + 1);
                     incompleteName = incompleteName.ToLower();
                     search = search.Substring(0, index + 1);
-                    if (!Directory.Exists(search))
+                    if (!Directory.Exists(search)) {
                         return results;
-                }
-                else
+                    }
+                } else {
                     return results;
-            }
-            else
-            {
-                if (!search.EndsWith("\\"))
+                }
+            } else {
+                if (!search.EndsWith("\\")) {
                     search += "\\";
+                }
             }
 
             string firstResult = "Open current directory";
-            if (incompleteName.Length > 0)
+            if (incompleteName.Length > 0) {
                 firstResult = "Open " + search;
-            results.Add(new Result
-            {
+            }
+
+            results.Add(new Result {
                 Title = firstResult,
                 IcoPath = search,
                 Score = 10000,
-                Action = c =>
-                {
+                Action = c => {
                     Process.Start(search);
                     return true;
                 }
@@ -150,33 +141,31 @@ namespace Wox.Plugin.Folder
 
             //Add children directories
             DirectoryInfo[] dirs = new DirectoryInfo(search).GetDirectories();
-            foreach (DirectoryInfo dir in dirs)
-            {
-                if ((dir.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden) continue;
-
-                if (incompleteName.Length != 0 && !dir.Name.ToLower().StartsWith(incompleteName))
+            foreach (DirectoryInfo dir in dirs) {
+                if ((dir.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden) {
                     continue;
+                }
+
+                if (incompleteName.Length != 0 && !dir.Name.ToLower().StartsWith(incompleteName)) {
+                    continue;
+                }
+
                 DirectoryInfo dirCopy = dir;
-                var result = new Result
-                {
+                Result result = new Result {
                     Title = dir.Name,
                     IcoPath = dir.FullName,
                     SubTitle = "Ctrl + Enter to open the directory",
-                    Action = c =>
-                    {
-                        if (c.SpecialKeyState.CtrlPressed)
-                        {
-                            try
-                            {
+                    Action = c => {
+                        if (c.SpecialKeyState.CtrlPressed) {
+                            try {
                                 Process.Start(dirCopy.FullName);
                                 return true;
-                            }
-                            catch (Exception ex)
-                            {
+                            } catch (Exception ex) {
                                 MessageBox.Show(ex.Message, "Could not start " + dirCopy.FullName);
                                 return false;
                             }
                         }
+
                         _context.API.ChangeQuery($"{query.ActionKeyword} {dirCopy.FullName}\\");
                         return false;
                     }
@@ -187,24 +176,23 @@ namespace Wox.Plugin.Folder
 
             //Add children files
             FileInfo[] files = new DirectoryInfo(search).GetFiles();
-            foreach (FileInfo file in files)
-            {
-                if ((file.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden) continue;
-                if (incompleteName.Length != 0 && !file.Name.ToLower().StartsWith(incompleteName))
+            foreach (FileInfo file in files) {
+                if ((file.Attributes & FileAttributes.Hidden) == FileAttributes.Hidden) {
                     continue;
+                }
+
+                if (incompleteName.Length != 0 && !file.Name.ToLower().StartsWith(incompleteName)) {
+                    continue;
+                }
+
                 string filePath = file.FullName;
-                var result = new Result
-                {
+                Result result = new Result {
                     Title = Path.GetFileName(filePath),
                     IcoPath = filePath,
-                    Action = c =>
-                    {
-                        try
-                        {
+                    Action = c => {
+                        try {
                             Process.Start(filePath);
-                        }
-                        catch (Exception ex)
-                        {
+                        } catch (Exception ex) {
                             MessageBox.Show(ex.Message, "Could not start " + filePath);
                         }
 
@@ -216,16 +204,6 @@ namespace Wox.Plugin.Folder
             }
 
             return results;
-        }
-
-        public string GetTranslatedPluginTitle()
-        {
-            return _context.API.GetTranslation("wox_plugin_folder_plugin_name");
-        }
-
-        public string GetTranslatedPluginDescription()
-        {
-            return _context.API.GetTranslation("wox_plugin_folder_plugin_description");
         }
     }
 }

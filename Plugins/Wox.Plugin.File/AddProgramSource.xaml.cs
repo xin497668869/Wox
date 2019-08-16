@@ -34,22 +34,22 @@ namespace Wox.Plugin.Program {
         }
 
         private void BrowseButton_Click(object sender, RoutedEventArgs e) {
-            var dialog = new FolderBrowserDialog();
-            var result = dialog.ShowDialog();
+            FolderBrowserDialog dialog = new FolderBrowserDialog();
+            DialogResult result = dialog.ShowDialog();
             if (result == System.Windows.Forms.DialogResult.OK) {
                 DirectoryTextBox.Text = dialog.SelectedPath;
             }
         }
 
         private void ButtonAdd_OnClick(object sender, RoutedEventArgs e) {
-            var s = DirectoryTextBox.Text;
+            string s = DirectoryTextBox.Text;
             if (!Directory.Exists(s)) {
                 MessageBox.Show(_context.API.GetTranslation("wox_plugin_program_invalid_path"));
                 return;
             }
 
             if (_editing == null) {
-                var source = new Settings.ProgramSource {
+                Settings.ProgramSource source = new Settings.ProgramSource {
                     Location = DirectoryTextBox.Text,
                     Priority = Convert.ToInt32(PriorityTextBox.Text),
                     Deep = Convert.ToInt32(DeepTextBox.Text)

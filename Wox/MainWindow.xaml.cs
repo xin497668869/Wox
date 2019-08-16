@@ -1,63 +1,46 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Windows;
-using System.Windows.Input;
-using System.Windows.Media.Animation;
 using System.Windows.Controls;
 using System.Windows.Forms;
+using System.Windows.Input;
+using System.Windows.Media.Animation;
 using Wox.Core.Plugin;
 using Wox.Core.Resource;
 using Wox.Helper;
+using Wox.Infrastructure;
 using Wox.Infrastructure.UserSettings;
 using Wox.ViewModel;
-using Screen = System.Windows.Forms.Screen;
-using ContextMenuStrip = System.Windows.Forms.ContextMenuStrip;
 using DataFormats = System.Windows.DataFormats;
 using DragEventArgs = System.Windows.DragEventArgs;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MessageBox = System.Windows.MessageBox;
-using NotifyIcon = System.Windows.Forms.NotifyIcon;
+using Point = System.Drawing.Point;
 
-namespace Wox
-{
-    public partial class MainWindow
-    {
-        #region Private Fields
-
-        private readonly Storyboard _progressBarStoryboard = new Storyboard();
-        private Settings _settings;
-        private NotifyIcon _notifyIcon;
-        private MainViewModel _viewModel;
-
-        #endregion
-
-        public MainWindow(Settings settings, MainViewModel mainVM)
-        {
+namespace Wox {
+    public partial class MainWindow {
+        public MainWindow(Settings settings, MainViewModel mainVM) {
             DataContext = mainVM;
             _viewModel = mainVM;
             _settings = settings;
             InitializeComponent();
         }
 
-        public MainWindow()
-        {
+        public MainWindow() {
             InitializeComponent();
         }
 
-        private void OnClosing(object sender, CancelEventArgs e)
-        {
+        private void OnClosing(object sender, CancelEventArgs e) {
             _notifyIcon.Visible = false;
             _viewModel.Save();
         }
 
-        private void OnInitialized(object sender, EventArgs e)
-        {
+        private void OnInitialized(object sender, EventArgs e) {
             // show notify icon when wox is hided
             InitializeNotifyIcon();
         }
 
-        private void OnLoaded(object sender, RoutedEventArgs _)
-        {
+        private void OnLoaded(object sender, RoutedEventArgs _) {
             // todo is there a way to set blur only once?
             ThemeManager.Instance.SetBlurForWindow();
             WindowsInteropHelper.DisableControlBox(this);
@@ -67,83 +50,75 @@ namespace Wox
             // so we need set focus during startup
             QueryTextBox.Focus();
 
-            _viewModel.PropertyChanged += (o, e) =>
-            {
-                if (e.PropertyName == nameof(MainViewModel.MainWindowVisibility))
-                {
-                    if (Visibility == Visibility.Visible)
-                    {
-                        Activate();
-                        QueryTextBox.Focus();
-                        UpdatePosition();
+            _viewModel.PropertyChanged += (o, e) => {
+                if (e.PropertyName == nameof(MainViewModel.MainWindowVisibility)) {
+                    if (Visibility == Visibility.Visible) {
+                        ;
+
                         _settings.ActivateTimes++;
-                        if (!_viewModel.LastQuerySelected)
-                        {
+                        if (!_viewModel.LastQuerySelected) {
                             QueryTextBox.SelectAll();
                             _viewModel.LastQuerySelected = true;
                         }
+
+                        Activate();
+                        QueryTextBox.Focus();
+                        UpdatePosition();
                     }
                 }
             };
-            _settings.PropertyChanged += (o, e) =>
-            {
-                if (e.PropertyName == nameof(Settings.HideNotifyIcon))
-                {
+            _settings.PropertyChanged += (o, e) => {
+                if (e.PropertyName == nameof(Settings.HideNotifyIcon)) {
                     _notifyIcon.Visible = !_settings.HideNotifyIcon;
                 }
             };
             InitializePosition();
         }
 
-        private void InitializePosition()
-        {
+        private void InitializePosition() {
             Top = WindowTop();
             Left = WindowLeft();
             _settings.WindowTop = Top;
             _settings.WindowLeft = Left;
         }
 
-        private void InitializeNotifyIcon()
-        {
-            _notifyIcon = new NotifyIcon
-            {
-                Text = Infrastructure.Constant.Wox,
+        private void InitializeNotifyIcon() {
+            _notifyIcon = new NotifyIcon {
+                Text = Constant.Wox,
                 Icon = Properties.Resources.app,
                 Visible = !_settings.HideNotifyIcon
             };
-            var menu = new ContextMenuStrip();
-            var items = menu.Items;
+            ContextMenuStrip menu = new ContextMenuStrip();
+            ToolStripItemCollection items = menu.Items;
 
-            var open = items.Add(InternationalizationManager.Instance.GetTranslation("iconTrayOpen"));
+            ToolStripItem open = items.Add(InternationalizationManager.Instance.GetTranslation("iconTrayOpen"));
             open.Click += (o, e) => Visibility = Visibility.Visible;
-            var setting = items.Add(InternationalizationManager.Instance.GetTranslation("iconTraySettings"));
+            ToolStripItem setting = items.Add(InternationalizationManager.Instance.GetTranslation("iconTraySettings"));
             setting.Click += (o, e) => App.API.OpenSettingDialog();
-            var exit = items.Add(InternationalizationManager.Instance.GetTranslation("iconTrayExit"));
-            exit.Click += (o, e) => Close();
+            ToolStripItem exit = items.Add(InternationalizationManager.Instance.GetTranslation("iconTrayExit"));
+            exit.Click += (o, e) => {
+                Close();
+                Environment.Exit(0);
+            };
 
             _notifyIcon.ContextMenuStrip = menu;
-            _notifyIcon.MouseClick += (o, e) =>
-            {
-                if (e.Button == MouseButtons.Left)
-                {
-                    if (menu.Visible)
-                    {
+            _notifyIcon.MouseClick += (o, e) => {
+                if (e.Button == MouseButtons.Left) {
+                    if (menu.Visible) {
                         menu.Close();
-                    }
-                    else
-                    {
-                        var p = System.Windows.Forms.Cursor.Position;
+                    } else {
+                        Point p = System.Windows.Forms.Cursor.Position;
                         menu.Show(p);
                     }
                 }
             };
         }
 
-        private void InitProgressbarAnimation()
-        {
-            var da = new DoubleAnimation(ProgressBar.X2, ActualWidth + 100,
+        private void InitProgressbarAnimation() {
+            DoubleAnimation da = new DoubleAnimation(ProgressBar.X2, ActualWidth + 100,
                 new Duration(new TimeSpan(0, 0, 0, 0, 1600)));
-            var da1 = new DoubleAnimation(ProgressBar.X1, ActualWidth, new Duration(new TimeSpan(0, 0, 0, 0, 1600)));
+            DoubleAnimation da1 = new DoubleAnimation(ProgressBar.X1, ActualWidth,
+                new Duration(new TimeSpan(0, 0, 0, 0, 1600)));
             Storyboard.SetTargetProperty(da, new PropertyPath("(Line.X2)"));
             Storyboard.SetTargetProperty(da1, new PropertyPath("(Line.X1)"));
             _progressBarStoryboard.Children.Add(da);
@@ -153,28 +128,23 @@ namespace Wox
             _viewModel.ProgressBarVisibility = Visibility.Hidden;
         }
 
-        private void OnMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.ChangedButton == MouseButton.Left) DragMove();
+        private void OnMouseDown(object sender, MouseButtonEventArgs e) {
+            if (e.ChangedButton == MouseButton.Left) {
+                DragMove();
+            }
         }
 
 
-        private void OnPreviewMouseButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            if (sender != null && e.OriginalSource != null)
-            {
-                var r = (ResultListBox) sender;
-                var d = (DependencyObject) e.OriginalSource;
-                var item = ItemsControl.ContainerFromElement(r, d) as ListBoxItem;
-                var result = (ResultViewModel) item?.DataContext;
-                if (result != null)
-                {
-                    if (e.ChangedButton == MouseButton.Left)
-                    {
+        private void OnPreviewMouseButtonDown(object sender, MouseButtonEventArgs e) {
+            if (sender != null && e.OriginalSource != null) {
+                ResultListBox r = (ResultListBox) sender;
+                DependencyObject d = (DependencyObject) e.OriginalSource;
+                ListBoxItem item = ItemsControl.ContainerFromElement(r, d) as ListBoxItem;
+                ResultViewModel result = (ResultViewModel) item?.DataContext;
+                if (result != null) {
+                    if (e.ChangedButton == MouseButton.Left) {
                         _viewModel.OpenResultCommand.Execute(null);
-                    }
-                    else if (e.ChangedButton == MouseButton.Right)
-                    {
+                    } else if (e.ChangedButton == MouseButton.Right) {
                         _viewModel.LoadContextMenuCommand.Execute(null);
                     }
                 }
@@ -182,18 +152,13 @@ namespace Wox
         }
 
 
-        private void OnDrop(object sender, DragEventArgs e)
-        {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
-            {
+        private void OnDrop(object sender, DragEventArgs e) {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop)) {
                 // Note that you can have more than one file.
                 string[] files = (string[]) e.Data.GetData(DataFormats.FileDrop);
-                if (files[0].ToLower().EndsWith(".wox"))
-                {
+                if (files[0].ToLower().EndsWith(".wox")) {
                     PluginManager.InstallPlugin(files[0]);
-                }
-                else
-                {
+                } else {
                     MessageBox.Show(InternationalizationManager.Instance.GetTranslation("invalidWoxPluginFileFormat"));
                 }
             }
@@ -201,102 +166,88 @@ namespace Wox
             e.Handled = false;
         }
 
-        private void OnPreviewDragOver(object sender, DragEventArgs e)
-        {
+        private void OnPreviewDragOver(object sender, DragEventArgs e) {
             e.Handled = true;
         }
 
-        private void OnContextMenusForSettingsClick(object sender, RoutedEventArgs e)
-        {
+        private void OnContextMenusForSettingsClick(object sender, RoutedEventArgs e) {
             App.API.OpenSettingDialog();
         }
 
 
-        private void OnDeactivated(object sender, EventArgs e)
-        {
-            if (_settings.HideWhenDeactive)
-            {
+        private void OnDeactivated(object sender, EventArgs e) {
+            if (_settings.HideWhenDeactive) {
                 Hide();
             }
         }
 
-        private void UpdatePosition()
-        {
-            if (_settings.RememberLastLaunchLocation)
-            {
+        private void UpdatePosition() {
+            if (_settings.RememberLastLaunchLocation) {
                 Left = _settings.WindowLeft;
                 Top = _settings.WindowTop;
-            }
-            else
-            {
+            } else {
                 Left = WindowLeft();
                 Top = WindowTop();
             }
         }
 
-        private void OnLocationChanged(object sender, EventArgs e)
-        {
-            if (_settings.RememberLastLaunchLocation)
-            {
+        private void OnLocationChanged(object sender, EventArgs e) {
+            if (_settings.RememberLastLaunchLocation) {
                 _settings.WindowLeft = Left;
                 _settings.WindowTop = Top;
             }
         }
 
-        private double WindowLeft()
-        {
-            var screen = Screen.FromPoint(System.Windows.Forms.Cursor.Position);
-            var dip1 = WindowsInteropHelper.TransformPixelsToDIP(this, screen.WorkingArea.X, 0);
-            var dip2 = WindowsInteropHelper.TransformPixelsToDIP(this, screen.WorkingArea.Width, 0);
-            var left = (dip2.X - ActualWidth) / 2 + dip1.X;
+        private double WindowLeft() {
+            Screen screen = Screen.FromPoint(System.Windows.Forms.Cursor.Position);
+            System.Windows.Point dip1 = WindowsInteropHelper.TransformPixelsToDIP(this, screen.WorkingArea.X, 0);
+            System.Windows.Point dip2 = WindowsInteropHelper.TransformPixelsToDIP(this, screen.WorkingArea.Width, 0);
+            double left = (dip2.X - ActualWidth) / 2 + dip1.X;
             return left;
         }
 
-        private double WindowTop()
-        {
-            var screen = Screen.FromPoint(System.Windows.Forms.Cursor.Position);
-            var dip1 = WindowsInteropHelper.TransformPixelsToDIP(this, 0, screen.WorkingArea.Y);
-            var dip2 = WindowsInteropHelper.TransformPixelsToDIP(this, 0, screen.WorkingArea.Height);
-            var top = (dip2.Y - QueryTextBox.ActualHeight) / 4 + dip1.Y;
+        private double WindowTop() {
+            Screen screen = Screen.FromPoint(System.Windows.Forms.Cursor.Position);
+            System.Windows.Point dip1 = WindowsInteropHelper.TransformPixelsToDIP(this, 0, screen.WorkingArea.Y);
+            System.Windows.Point dip2 = WindowsInteropHelper.TransformPixelsToDIP(this, 0, screen.WorkingArea.Height);
+            double top = (dip2.Y - QueryTextBox.ActualHeight) / 4 + dip1.Y;
             return top;
         }
 
         /// <summary>
-        /// Register up and down key
-        /// todo: any way to put this in xaml ?
+        ///     Register up and down key
+        ///     todo: any way to put this in xaml ?
         /// </summary>
-        private void OnKeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Down)
-            {
+        private void OnKeyDown(object sender, KeyEventArgs e) {
+            if (e.Key == Key.Down) {
                 _viewModel.SelectNextItemCommand.Execute(null);
                 e.Handled = true;
-            }
-            else if (e.Key == Key.Up)
-            {
+            } else if (e.Key == Key.Up) {
                 _viewModel.SelectPrevItemCommand.Execute(null);
                 e.Handled = true;
-            }
-            else if (e.Key == Key.PageDown)
-            {
+            } else if (e.Key == Key.PageDown) {
                 _viewModel.SelectNextPageCommand.Execute(null);
                 e.Handled = true;
-            }
-            else if (e.Key == Key.PageUp)
-            {
+            } else if (e.Key == Key.PageUp) {
                 _viewModel.SelectPrevPageCommand.Execute(null);
                 e.Handled = true;
             }
         }
 
-        private void OnTextChanged(object sender, TextChangedEventArgs e)
-        {
-            if (_viewModel.QueryTextCursorMovedToEnd)
-            {
+        private void OnTextChanged(object sender, TextChangedEventArgs e) {
+            if (_viewModel.QueryTextCursorMovedToEnd) {
                 QueryTextBox.CaretIndex = QueryTextBox.Text.Length;
                 _viewModel.QueryTextCursorMovedToEnd = false;
             }
         }
 
+        #region Private Fields
+
+        private readonly Storyboard _progressBarStoryboard = new Storyboard();
+        private readonly Settings _settings;
+        private NotifyIcon _notifyIcon;
+        private readonly MainViewModel _viewModel;
+
+        #endregion
     }
 }

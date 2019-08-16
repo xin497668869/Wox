@@ -31,21 +31,22 @@ namespace Wox.Plugin.Program {
         }
 
         public List<Result> LoadContextMenus(Result selectedResult) {
-            var program = selectedResult.ContextData as IProgram;
+            IProgram program = selectedResult.ContextData as IProgram;
             if (program != null) {
-                var menus = program.ContextMenus(_context.API);
+                List<Result> menus = program.ContextMenus(_context.API);
                 return menus;
             }
 
             return new List<Result>();
         }
 
-        public List<Result> Query(Query query) {
+        public List<Result> Query(Query query, Dictionary<string, int> historyHistorySources) {
             lock (IndexLock) {
-                var programs = Win32.SearchPrograms(query.Search, _settings);
+                IEnumerable<Win32> programs = Win32.SearchPrograms(query, _settings, historyHistorySources);
 
-                var results = programs.Select(p => {
-                    var result1 = p.Result(query.Search, _context.API);
+                List<Result> results = programs.Select(p => {
+                    Result result1 = p.Result(query.Search, _context.API);
+                    result1.historySave = p.FullPath;
                     return result1;
                 }).ToList();
 
@@ -79,26 +80,9 @@ namespace Wox.Plugin.Program {
             try {
                 Process.Start(info);
                 hide = true;
-                _settings.HistorySourcesMap.Remove(info.FileName);
-                _settings.HistorySourcesMap.Add(info.FileName, (int) (DateTime.Now.ToFileTime() / 1000));
-                if (_settings.HistorySourcesMap.Count > 100) {
-                    var minTime = int.MaxValue;
-                    string fileName = null;
-
-                    foreach (var keyValuePair in _settings.HistorySourcesMap) {
-                        if (keyValuePair.Value < minTime) {
-                            minTime = keyValuePair.Value;
-                            fileName = keyValuePair.Key;
-                        }
-                    }
-
-                    if (fileName != null) {
-                        _settings.HistorySourcesMap.Remove(fileName);
-                    }
-                }
             } catch (Exception) {
-                var name = "Plugin: Program";
-                var message = $"Can't start: {info.FileName}";
+                string name = "Plugin: Program";
+                string message = $"Can't start: {info.FileName}";
                 _context.API.ShowMsg(name, message, string.Empty);
                 hide = false;
             }

@@ -19,25 +19,24 @@ namespace Wox.Plugin.Program {
 
         private void ReIndexing() {
             programSourceView.Items.Refresh();
-            programHistoryView.Items.Refresh();
+//            programHistoryView.Items.Refresh();
         }
 
         private void Setting_Loaded(object sender, RoutedEventArgs e) {
             programSourceView.ItemsSource = _settings.ProgramSources;
-            programHistoryView.ItemsSource = _settings.HistorySourcesMap;
         }
 
 
         private void btnAddProgramSource_OnClick(object sender, RoutedEventArgs e) {
-            var add = new AddProgramSource(context, _settings);
+            AddProgramSource add = new AddProgramSource(context, _settings);
             add.ShowDialog();
             ReIndexing();
         }
 
         private void btnDeleteProgramSource_OnClick(object sender, RoutedEventArgs e) {
-            var selectedProgramSource = programSourceView.SelectedItem as Settings.ProgramSource;
+            Settings.ProgramSource selectedProgramSource = programSourceView.SelectedItem as Settings.ProgramSource;
             if (selectedProgramSource != null) {
-                var msg = string.Format(context.API.GetTranslation("wox_plugin_program_delete_program_source"),
+                string msg = string.Format(context.API.GetTranslation("wox_plugin_program_delete_program_source"),
                     selectedProgramSource.Location);
 
                 if (MessageBox.Show(msg, string.Empty, MessageBoxButton.YesNo) == MessageBoxResult.Yes) {
@@ -45,20 +44,20 @@ namespace Wox.Plugin.Program {
                     ReIndexing();
                 }
             } else {
-                var msg = context.API.GetTranslation("wox_plugin_program_pls_select_program_source");
+                string msg = context.API.GetTranslation("wox_plugin_program_pls_select_program_source");
                 MessageBox.Show(msg);
             }
         }
 
         private void btnEditProgramSource_OnClick(object sender, RoutedEventArgs e) {
-            var selectedProgramSource = programSourceView.SelectedItem as Settings.ProgramSource;
+            Settings.ProgramSource selectedProgramSource = programSourceView.SelectedItem as Settings.ProgramSource;
             if (selectedProgramSource != null) {
-                var add = new AddProgramSource(selectedProgramSource, _settings);
+                AddProgramSource add = new AddProgramSource(selectedProgramSource, _settings);
                 if (add.ShowDialog() ?? false) {
                     ReIndexing();
                 }
             } else {
-                var msg = context.API.GetTranslation("wox_plugin_program_pls_select_program_source");
+                string msg = context.API.GetTranslation("wox_plugin_program_pls_select_program_source");
                 MessageBox.Show(msg);
             }
         }
@@ -73,10 +72,10 @@ namespace Wox.Plugin.Program {
         }
 
         private void programSourceView_Drop(object sender, DragEventArgs e) {
-            var files = (string[]) e.Data.GetData(DataFormats.FileDrop);
+            string[] files = (string[]) e.Data.GetData(DataFormats.FileDrop);
 
             if (files != null && files.Length > 0) {
-                foreach (var s in files) {
+                foreach (string s in files) {
                     if (Directory.Exists(s)) {
                         _settings.ProgramSources.Add(new Settings.ProgramSource {
                             Location = s
@@ -86,8 +85,8 @@ namespace Wox.Plugin.Program {
             }
         }
 
-        private void cleanHistoryClick(object sender, RoutedEventArgs e) {
-            _settings.HistorySourcesMap.Clear();
-        }
+//        private void cleanHistoryClick(object sender, RoutedEventArgs e) {
+//            _settings.HistorySourcesMap.Clear();
+//        }
     }
 }
